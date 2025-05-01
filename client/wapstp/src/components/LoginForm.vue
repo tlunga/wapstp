@@ -27,6 +27,7 @@
         try {
           await signInWithEmailAndPassword(auth, this.email, this.password);
           this.error = 'Přihlášení úspěšné!';
+          this.$emit('userLoggedIn');
         } catch (err) {
           this.error = err.message;
         }

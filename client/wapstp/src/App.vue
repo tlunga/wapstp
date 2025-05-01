@@ -1,8 +1,40 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import { ref, onMounted } from 'vue';
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 import RegisterForm from './components/RegisterForm.vue';
 import LoginForm from './components/LoginForm.vue';
+import HelloWorld from './components/HelloWorld.vue';
+
+const user = ref(null);
+const userRole = ref(null);
+
+// Sledujeme změnu přihlášení
+onMounted(() => {
+  onAuthStateChanged(auth, async (u) => {
+    user.value = u;
+    if (u) {
+      await fetchUserRole();
+    }
+  });
+});
+
+async function fetchUserRole() {
+  if (!user.value) return;
+  const docRef = doc(db, 'users', user.value.uid);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    userRole.value = docSnap.data().role;
+  }
+}
+
+async function logout() {
+  await signOut(auth);
+  user.value = null;
+  userRole.value = null;
+}
 </script>
 
 <template>
@@ -13,9 +45,17 @@ import LoginForm from './components/LoginForm.vue';
     <a href="https://vuejs.org/" target="_blank">
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
-    <RegisterForm />
-    <LoginForm />
+
+    <div v-if="user">
+      <p>Přihlášen jako: {{ user.email }} (role: {{ userRole }})</p>
+      <button @click="logout">Odhlásit se</button>
+    </div>
+    <div v-else>
+      <RegisterForm />
+      <LoginForm @userLoggedIn="fetchUserRole" />
+    </div>
   </div>
+
   <HelloWorld msg="Vite + Vue" />
 </template>
 
