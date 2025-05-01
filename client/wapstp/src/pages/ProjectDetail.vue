@@ -32,21 +32,65 @@
       @cancelEdit="taskToEdit = null"
     />
 
-    <h2>Úkoly</h2>
-    <div v-if="tasks.length">
-      <ul>
-        <li v-for="task in tasks" :key="task.id">
-          <strong>{{ task.title }}</strong> – {{ task.status }}<br />
-          {{ task.description }}<br />
-          <p v-if="task.assignedTo">
-            <em>Přiřazeno: {{ usersMap[task.assignedTo] || 'neznámý uživatel' }}</em>
-          </p>
-          <button @click="taskToEdit = task">Upravit</button>
-          <button @click="deleteTask(task.id)">Smazat</button>
-        </li>
-      </ul>
+    <h2>Kanban nástěnka</h2>
+    <div class="kanban-board">
+      <div class="kanban-column">
+        <h3>To Do</h3>
+        <draggable
+          v-model="tasksByStatus.todo"
+          group="tasks"
+          @end="onDragEnd"
+          item-key="id"
+        >
+          <template #item="{ element }">
+            <TaskCard
+              :task="element"
+              :usersMap="usersMap"
+              @edit="taskToEdit = element"
+              @delete="deleteTask"
+            />
+          </template>
+        </draggable>
+      </div>
+
+      <div class="kanban-column">
+        <h3>In Progress</h3>
+        <draggable
+          v-model="tasksByStatus.inProgress"
+          group="tasks"
+          @end="onDragEnd"
+          item-key="id"
+        >
+          <template #item="{ element }">
+            <TaskCard
+              :task="element"
+              :usersMap="usersMap"
+              @edit="taskToEdit = element"
+              @delete="deleteTask"
+            />
+          </template>
+        </draggable>
+      </div>
+
+      <div class="kanban-column">
+        <h3>Done</h3>
+        <draggable
+          v-model="tasksByStatus.done"
+          group="tasks"
+          @end="onDragEnd"
+          item-key="id"
+        >
+          <template #item="{ element }">
+            <TaskCard
+              :task="element"
+              :usersMap="usersMap"
+              @edit="taskToEdit = element"
+              @delete="deleteTask"
+            />
+          </template>
+        </draggable>
+      </div>
     </div>
-    <p v-else>Žádné úkoly</p>
   </div>
 
   <div v-else>
@@ -68,9 +112,11 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import TaskForm from '../components/TaskForm.vue';
+import TaskCard from '../components/TaskCard.vue';
+import draggable from 'vuedraggable';
 
 export default {
-  components: { TaskForm },
+  components: { TaskForm, TaskCard, draggable },
   data() {
     return {
       project: null,
@@ -85,6 +131,15 @@ export default {
   async mounted() {
     await this.loadProjectAndTasks();
     await this.loadProjectMembers();
+  },
+  computed: {
+    tasksByStatus() {
+      return {
+        todo: this.tasks.filter(t => t.status === 'todo'),
+        inProgress: this.tasks.filter(t => t.status === 'in progress'),
+        done: this.tasks.filter(t => t.status === 'done')
+      };
+    }
   },
   methods: {
     async loadProjectAndTasks() {
@@ -161,7 +216,38 @@ export default {
 
       await this.loadProjectAndTasks();
       await this.loadProjectMembers();
+    },
+
+    async onDragEnd(event) {
+      const { item, to } = event;
+
+      let newStatus = '';
+      if (to.innerText.includes('To Do')) newStatus = 'todo';
+      else if (to.innerText.includes('In Progress')) newStatus = 'in progress';
+      else if (to.innerText.includes('Done')) newStatus = 'done';
+
+      if (item && item.id && item.status !== newStatus) {
+        const docRef = doc(db, 'tasks', item.id);
+        await updateDoc(docRef, { status: newStatus });
+        await this.fetchTasks();
+      }
     }
   }
 };
 </script>
+
+<style scoped>
+.kanban-board {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.kanban-column {
+  flex: 1;
+  background: #f8f8f8;
+  padding: 1rem;
+  border-radius: 8px;
+  min-height: 300px;
+}
+</style>
