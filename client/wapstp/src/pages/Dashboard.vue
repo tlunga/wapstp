@@ -1,7 +1,50 @@
 <template>
     <div>
-      <h1>Nástěnka</h1>
-      <button @click="$router.push('/projects/new')">Nový projekt</button>
+      <h1>Moje projekty</h1>
+      <button @click="$router.push('/projects/new')">+ Nový projekt</button>
+  
+      <div v-if="projects.length">
+        <div v-for="project in projects" :key="project.id" class="project-card">
+          <h3>{{ project.name }}</h3>
+          <p>{{ project.description }}</p>
+          <router-link :to="`/projects/${project.id}`">Zobrazit detail</router-link>
+        </div>
+      </div>
+  
+      <p v-else>Nemáte žádné projekty.</p>
     </div>
   </template>
+  
+  <script>
+  import { db, auth } from '../firebase';
+  import { collection, query, where, getDocs } from 'firebase/firestore';
+  
+  export default {
+    data() {
+      return {
+        projects: []
+      };
+    },
+    async mounted() {
+      const user = auth.currentUser;
+      if (!user) return;
+  
+      const q = query(collection(db, 'projects'), where('ownerId', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      this.projects = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    }
+  };
+  </script>
+  
+  <style scoped>
+  .project-card {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+  </style>
   
