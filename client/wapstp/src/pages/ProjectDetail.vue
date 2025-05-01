@@ -3,9 +3,30 @@
     <h1>{{ project.name }}</h1>
     <p>{{ project.description }}</p>
 
+    <h3>Členové projektu:</h3>
+    <ul>
+      <li v-for="user in membersInfo" :key="user.uid">
+        {{ user.email }}
+      </li>
+    </ul>
+
+    <div v-if="isOwner">
+      <h3>Správa členů týmu:</h3>
+      <div v-for="user in allUsers" :key="user.uid">
+        <input
+          type="checkbox"
+          v-model="user.selected"
+          :value="user.uid"
+        />
+        {{ user.email }}
+      </div>
+      <button @click="updateMembers">Uložit změny</button>
+    </div>
+
     <TaskForm
       :projectId="project.id"
       :taskToEdit="taskToEdit"
+      :members="project.members"
       @taskAdded="fetchTasks"
       @taskUpdated="onTaskUpdated"
       @cancelEdit="taskToEdit = null"
@@ -27,13 +48,14 @@
     </div>
     <p v-else>Žádné úkoly</p>
   </div>
+
   <div v-else>
     <p>Načítám projekt...</p>
   </div>
 </template>
 
 <script>
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import {
   doc,
   getDoc,
@@ -42,7 +64,8 @@ import {
   where,
   getDocs,
   orderBy,
-  deleteDoc
+  deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import TaskForm from '../components/TaskForm.vue';
 
@@ -52,53 +75,58 @@ export default {
     return {
       project: null,
       tasks: [],
-      taskToEdit: null
+      taskToEdit: null,
+      usersMap: {},
+      membersInfo: [],
+      allUsers: [],
+      isOwner: false
     };
   },
   async mounted() {
     await this.loadProjectAndTasks();
+    await this.loadProjectMembers();
   },
-
-  data() {
-  return {
-    project: null,
-    tasks: [],
-    taskToEdit: null,
-    usersMap: {} // nově
-  };
-},
-
-async mounted() {
-  await this.loadProjectAndTasks();
-  await this.loadUsers(); // nově
-},
-
   methods: {
     async loadProjectAndTasks() {
       try {
         const projectId = this.$route.params.id;
-        console.log('🔍 Načítám projekt ID:', projectId);
-
         const docRef = doc(db, 'projects', projectId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           this.project = { id: docSnap.id, ...docSnap.data() };
-          console.log('✅ Projekt načten:', this.project.id);
-          await this.fetchTasks(); // úkoly načítáme až po načtení projektu
+          this.isOwner =
+            auth.currentUser && auth.currentUser.uid === this.project.ownerId;
+          await this.fetchTasks();
         } else {
-          console.error('❌ Projekt nenalezen ve Firestore');
+          console.error('Projekt nenalezen');
         }
       } catch (err) {
         console.error('Chyba při načítání projektu:', err);
       }
     },
 
+    async loadProjectMembers() {
+      if (!this.project?.members) return;
+
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      this.allUsers = querySnapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      }));
+
+      this.allUsers.forEach(u => {
+        u.selected = this.project.members.includes(u.uid);
+      });
+
+      this.membersInfo = this.allUsers.filter(u =>
+        this.project.members.includes(u.uid)
+      );
+      this.usersMap = Object.fromEntries(this.membersInfo.map(u => [u.uid, u.email]));
+    },
+
     async fetchTasks() {
-      if (!this.project?.id) {
-        console.warn('⚠️ fetchTasks volán bez project.id');
-        return;
-      }
+      if (!this.project?.id) return;
 
       const q = query(
         collection(db, 'tasks'),
@@ -111,8 +139,6 @@ async mounted() {
         id: doc.id,
         ...doc.data()
       }));
-
-      console.log('📋 Úkoly načteny:', this.tasks);
     },
 
     async deleteTask(taskId) {
@@ -124,14 +150,18 @@ async mounted() {
       this.taskToEdit = null;
       await this.fetchTasks();
     },
-    async loadUsers() {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    this.usersMap = {};
-    querySnapshot.forEach(doc => {
-      this.usersMap[doc.id] = doc.data().email;
-    });
-  }
 
+    async updateMembers() {
+      const newMembers = this.allUsers
+        .filter(u => u.selected)
+        .map(u => u.uid);
+
+      const docRef = doc(db, 'projects', this.project.id);
+      await updateDoc(docRef, { members: newMembers });
+
+      await this.loadProjectAndTasks();
+      await this.loadProjectMembers();
+    }
   }
 };
 </script>
