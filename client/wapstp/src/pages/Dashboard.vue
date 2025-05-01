@@ -10,14 +10,18 @@
           <router-link :to="`/projects/${project.id}`">Zobrazit detail</router-link>
         </div>
       </div>
-  
-      <p v-else>Nemáte žádné projekty.</p>
+      <p v-else>Nejsi členem žádného projektu.</p>
     </div>
   </template>
   
   <script>
-  import { db, auth } from '../firebase';
-  import { collection, query, where, getDocs } from 'firebase/firestore';
+  import { auth, db } from '../firebase';
+  import {
+    collection,
+    query,
+    where,
+    getDocs
+  } from 'firebase/firestore';
   
   export default {
     data() {
@@ -27,9 +31,16 @@
     },
     async mounted() {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) {
+        console.warn('Uživatel není přihlášen.');
+        return;
+      }
   
-      const q = query(collection(db, 'projects'), where('ownerId', '==', user.uid));
+      const q = query(
+        collection(db, 'projects'),
+        where('members', 'array-contains', user.uid)
+      );
+  
       const querySnapshot = await getDocs(q);
       this.projects = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -43,7 +54,7 @@
   .project-card {
     border: 1px solid #ccc;
     padding: 1rem;
-    margin-bottom: 1rem;
+    margin: 1rem 0;
     border-radius: 8px;
   }
   </style>
