@@ -1,6 +1,7 @@
 // firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCNxOsGFz6Bq1MeFnacxUM6KL_OCp_Jzyo",
@@ -17,3 +18,4 @@ const app = initializeApp(firebaseConfig);
 
 // Export pro použití v komponentách
 export const auth = getAuth(app);
+export const db = getFirestore(app);

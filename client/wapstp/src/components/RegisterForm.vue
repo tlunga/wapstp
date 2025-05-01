@@ -11,8 +11,9 @@
   </template>
   
   <script>
-  import { auth } from '../firebase';
+  import { auth, db } from '../firebase';
   import { createUserWithEmailAndPassword } from 'firebase/auth';
+  import { doc, setDoc } from 'firebase/firestore';
   
   export default {
     data() {
@@ -23,15 +24,24 @@
       };
     },
     methods: {
-      async register() {
-        try {
-          await createUserWithEmailAndPassword(auth, this.email, this.password);
-          this.error = 'Registrace úspěšná!';
-        } catch (err) {
-          this.error = err.message;
-        }
+    async register() {
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, this.email, this.password);
+        const user = userCredential.user;
+
+        // Zápis do Firestore kolekce "users"
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          role: 'member',
+          createdAt: new Date()
+        });
+
+        this.error = 'Registrace úspěšná!';
+      } catch (err) {
+        this.error = err.message;
       }
     }
-  };
-  </script>
+  }
+};
+</script>
   
