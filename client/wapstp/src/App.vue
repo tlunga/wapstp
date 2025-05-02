@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import Navbar from './components/Navbar.vue';
 
 import RegisterForm from './components/RegisterForm.vue';
 import LoginForm from './components/LoginForm.vue';
@@ -38,7 +39,10 @@ async function logout() {
 </script>
 
 <template>
-  <router-view />
+  <div>
+    <Navbar />
+    <router-view />
+  </div>
 </template>
 
 <style scoped>

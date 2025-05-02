@@ -32,21 +32,31 @@
       };
     },
     async mounted() {
-      const user = auth.currentUser;
-      if (!user) return;
-  
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-  
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        this.name = data.name || '';
-        this.email = data.email || user.email;
-        this.info = data.info || '';
-      } else {
-        this.email = user.email;
-      }
-    },
+  onAuthStateChanged(auth, async (user) => {
+    console.log('✅ Uživatel z onAuthStateChanged:', user);
+    if (!user) return;
+
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      this.name = data.name || '';
+      this.email = data.email || user.email;
+      this.info = data.info || '';
+    } else {
+      this.email = user.email;
+      this.name = '';
+      this.info = '';
+      await setDoc(docRef, {
+        name: this.name,
+        email: this.email,
+        info: this.info
+      });
+    }
+  });
+},
+    
     methods: {
       async saveProfile() {
         const user = auth.currentUser;
@@ -68,7 +78,7 @@
   <style scoped>
   .profile-page {
     max-width: 500px;
-    margin: auto;
+    margin: 2rem auto;
     background: #f8f9fa;
     padding: 2rem;
     border-radius: 10px;
@@ -88,6 +98,7 @@
     margin-top: 0.4rem;
     border: 1px solid #ccc;
     border-radius: 6px;
+    font-size: 1rem;
   }
   
   button {
