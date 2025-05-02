@@ -13,7 +13,8 @@ const routes = [
   { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
   { path: '/projects/:id', component: ProjectDetail, meta: { requiresAuth: true } },
   { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
-  { path: '/projects/new', component: NewProject, meta: { requiresAuth: true } }
+  { path: '/projects/new', component: NewProject, meta: { requiresAuth: true } },
+  { path: '/profile',component: () => import('../pages/Profile.vue')}
 ];
 
 const router = createRouter({

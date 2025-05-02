@@ -237,17 +237,96 @@ export default {
 </script>
 
 <style scoped>
+h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+ul {
+  padding-left: 1.2rem;
+}
+
+input[type='text'],
+textarea,
+select {
+  padding: 0.5rem;
+  margin: 0.3rem 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease-in-out;
+}
+
+button:hover {
+  background-color: #2563eb;
+}
+
 .kanban-board {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   margin-top: 1rem;
 }
 
 .kanban-column {
   flex: 1;
-  background: #f8f8f8;
+  background: #f1f5f9;
   padding: 1rem;
   border-radius: 8px;
   min-height: 300px;
+}
+
+.task-card {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.task-card strong {
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.task-card p {
+  margin: 0.3rem 0;
+}
+
+.task-card em {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 0.5rem;
+  display: block;
 }
 </style>
