@@ -34,6 +34,20 @@
       </div>
     </div>
 
+    
+    <h2 style="margin-top: 2rem;">Moje úkoly</h2>
+<div v-if="myTasks.length">
+  <ul>
+    <li v-for="task in myTasks" :key="task.id">
+      <strong>{{ task.title }}</strong> – {{ task.status }}
+      <br />
+      <small v-if="task.dueDate">🗓 {{ formatDate(task.dueDate) }}</small>
+      <br />
+      <router-link :to="`/projects/${task.projectId}`">Otevřít projekt</router-link>
+    </li>
+  </ul>
+</div>
+
     <p v-else>Nejsi členem žádného projektu.</p>
   </div>
 </template>
@@ -50,7 +64,8 @@ import {
 export default {
   data() {
     return {
-      projects: []
+      projects: [],
+      myTasks: []
     };
   },
   async mounted() {
@@ -79,8 +94,26 @@ export default {
 
       this.projects.push(project);
     }
+    const tasksQuery = query(
+      collection(db, 'tasks'),
+      where('assignedTo', 'array-contains', user.uid)
+    );
+    const tasksSnap = await getDocs(tasksQuery);
+      this.myTasks = tasksSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+  }));
+  },
+
+  methods: {
+    formatDate(ts) {
+      if (!ts) return '';
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return date.toLocaleDateString();
+    }
   }
 };
+
 </script>
 
 <style scoped>
