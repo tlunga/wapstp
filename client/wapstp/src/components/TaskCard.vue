@@ -40,30 +40,16 @@
       <button @click="$emit('edit', task)">Upravit</button>
       <button @click="$emit('delete', task.id)">Smazat</button>
     </div>
-
-    <div class="status-buttons">
-      <button v-if="task.status !== 'todo'" @click="changeStatus('todo')">← To Do</button>
-      <button v-if="task.status !== 'in progress'" @click="changeStatus('in progress')">→ In Progress</button>
-      <button v-if="task.status !== 'done'" @click="changeStatus('done')">→ Done</button>
-    </div>
   </div>
 </template>
 
 <script>
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-
 export default {
   props: {
     task: Object,
     usersMap: Object
   },
   methods: {
-    async changeStatus(newStatus) {
-      const docRef = doc(db, 'tasks', this.task.id);
-      await updateDoc(docRef, { status: newStatus });
-      this.$emit('statusChanged');
-    },
     formatDueDate(ts) {
       if (!ts) return '';
       const date = ts.toDate ? ts.toDate() : new Date(ts);
@@ -77,7 +63,6 @@ export default {
   }
 };
 </script>
-
 
 <style scoped>
 .task-card {
@@ -165,25 +150,5 @@ export default {
 
 .task-actions button:hover {
   background-color: #2563eb;
-}
-
-.status-buttons {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.status-buttons button {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background-color: #e5e7eb;
-}
-
-.status-buttons button:hover {
-  background-color: #d1d5db;
 }
 </style>
