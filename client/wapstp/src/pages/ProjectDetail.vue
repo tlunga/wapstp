@@ -56,7 +56,13 @@
         <h3>To Do</h3>
         <draggable v-model="tasksByStatus.todo" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
+            <TaskCard
+              :task="element"
+              :usersMap="usersMap"
+              @edit="taskToEdit = element"
+              @delete="deleteTask"
+              @statusChanged="fetchTasks"
+            />
           </template>
         </draggable>
       </div>

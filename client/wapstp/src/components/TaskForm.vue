@@ -19,21 +19,18 @@
       <label>Termín dokončení:</label>
       <input type="date" v-model="form.dueDate" />
 
-      <div>
-        <label>Přiřadit členům:</label>
-        <div v-for="uid in members" :key="uid">
-          <input type="checkbox" :value="uid" v-model="form.assignedTo" />
-          {{ usersMap[uid] || uid }}
-        </div>
-      </div>
-
       <label>Priorita:</label>
-        <select v-model="form.priority">
+      <select v-model="form.priority">
         <option value="low">Nízká</option>
         <option value="medium">Střední</option>
         <option value="high">Vysoká</option>
       </select>
 
+      <label>Přiřadit členům:</label>
+      <div v-for="uid in members" :key="uid">
+        <input type="checkbox" :value="uid" v-model="form.assignedTo" />
+        {{ usersMap[uid] || uid }}
+      </div>
 
       <button type="submit">{{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}</button>
       <button type="button" v-if="taskToEdit" @click="$emit('cancelEdit')">Zrušit</button>
@@ -42,7 +39,7 @@
 </template>
 
 <script>
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import {
   collection,
   addDoc,
@@ -83,7 +80,8 @@ export default {
             assignedTo: task.assignedTo || [],
             dueDate: task.dueDate
               ? task.dueDate.toDate().toISOString().split('T')[0]
-              : ''
+              : '',
+            priority: task.priority || 'medium'
           };
         } else {
           this.resetForm();
@@ -96,13 +94,18 @@ export default {
   },
   methods: {
     async submit() {
+      const user = auth.currentUser;
+      if (!user) return;
+
       const task = {
         ...this.form,
         projectId: this.projectId,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        createdBy: {
+          uid: user.uid,
+          name: this.usersMap[user.uid] || user.email
+        }
       };
-
-      
 
       if (this.form.dueDate) {
         task.dueDate = Timestamp.fromDate(new Date(this.form.dueDate));
@@ -125,7 +128,8 @@ export default {
         description: '',
         status: 'todo',
         assignedTo: [],
-        dueDate: ''
+        dueDate: '',
+        priority: 'medium'
       };
     },
     async loadUsersMap() {
