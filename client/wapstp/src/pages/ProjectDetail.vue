@@ -31,6 +31,21 @@
       @cancelEdit="taskToEdit = null"
     />
 
+    <div style="margin-top: 1rem;">
+  <strong>Průběh projektu:</strong>
+  <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 0.25rem;">
+    <div
+      :style="{
+        width: projectProgress + '%',
+        background: '#10b981',
+        height: '100%',
+        transition: 'width 0.3s'
+      }"
+    ></div>
+  </div>
+  <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
+</div>
+
     <h2>Kanban nástěnka</h2>
     <div class="kanban-board">
       <div class="kanban-column">
@@ -138,7 +153,13 @@ export default {
         inProgress: this.tasks.filter(t => t.status === 'in progress'),
         done: this.tasks.filter(t => t.status === 'done')
       };
-    }
+    },
+    projectProgress() {
+        const total = this.tasks.length;
+        const done = this.tasks.filter(t => t.status === 'done').length;
+    return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
   },
   methods: {
     async loadProjectAndTasks() {
