@@ -18,11 +18,12 @@
 
       <div>
         <label>Přiřadit členům:</label>
-        <div v-for="uid in members" :key="uid">
-          <input type="checkbox" :value="uid" v-model="form.assignedTo" />
-          {{ usersMap[uid] || uid }}
-        </div>
+          <div v-for="uid in members" :key="uid">
+            <input type="checkbox" :value="uid" v-model="form.assignedTo" />
+            {{ usersMap[uid] || uid }}
+          </div>
       </div>
+
 
       <button type="submit">{{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}</button>
       <button type="button" v-if="taskToEdit" @click="$emit('cancelEdit')">Zrušit</button>
@@ -109,7 +110,8 @@ export default {
       const { getDocs, collection } = await import('firebase/firestore');
       const querySnapshot = await getDocs(collection(db, 'users'));
       querySnapshot.forEach(doc => {
-        this.usersMap[doc.id] = doc.data().email || doc.id;
+        const data = doc.data();
+        this.usersMap[doc.id] = data.name || data.email || doc.id;
       });
     }
   }

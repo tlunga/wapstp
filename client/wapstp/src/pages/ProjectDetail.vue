@@ -6,7 +6,7 @@
     <h3>Členové projektu:</h3>
     <ul>
       <li v-for="user in membersInfo" :key="user.uid">
-        {{ user.email }}
+        {{ usersMap[user.uid] || user.email }}
         <span v-if="user.uid === project.ownerId" style="color: #10b981; font-weight: bold;"> – vedoucí</span>
       </li>
     </ul>
@@ -15,7 +15,7 @@
       <h3>Správa členů týmu:</h3>
       <div v-for="user in allUsers" :key="user.uid">
         <input type="checkbox" v-model="user.selected" :value="user.uid" />
-        {{ user.email }}
+        {{ usersMap[user.uid] || user.email }}
       </div>
       <button @click="updateMembers">Uložit změny</button>
     </div>
@@ -45,8 +45,8 @@
     </div>
 
     <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-      <input type="checkbox" v-model="filterMineOnly" />
-      Zobrazit pouze moje úkoly
+        <input type="checkbox" v-model="filterMineOnly" />
+        Zobrazit pouze moje úkoly
     </label>
 
 
@@ -84,7 +84,7 @@
     <div class="chat-box">
       <div ref="chatContainer" class="chat-messages">
         <div v-for="msg in messages" :key="msg.id" class="chat-message">
-          <strong>{{ msg.userEmail }}:</strong> {{ msg.text }}<br />
+          <strong>{{ msg.userName }}:</strong> {{ msg.text }}<br />
           <small style="color: #6b7280;">
             {{ formatTimestamp(msg.createdAt) }}
           </small>
@@ -144,21 +144,23 @@ export default {
     this.listenToMessages();
   },
   computed: {
-    tasksByStatus() {
-      const uid = auth.currentUser?.uid;
-      const filterFn = t => !this.filterMineOnly || t.assignedTo === uid;
+  tasksByStatus() {
+    const uid = auth.currentUser?.uid;
+    const filterFn = t =>
+      !this.filterMineOnly || (Array.isArray(t.assignedTo) && t.assignedTo.includes(uid));
 
-  return {
+    return {
       todo: this.tasks.filter(t => t.status === 'todo' && filterFn(t)),
       inProgress: this.tasks.filter(t => t.status === 'in progress' && filterFn(t)),
       done: this.tasks.filter(t => t.status === 'done' && filterFn(t))
-      };
-    },
-    projectProgress() {
-      const total = this.tasks.length;
-      const done = this.tasks.filter(t => t.status === 'done').length;
-      return total === 0 ? 0 : Math.round((done / total) * 100);
-    }
+    };
+  },
+
+  projectProgress() {
+    const total = this.tasks.length;
+    const done = this.tasks.filter(t => t.status === 'done').length;
+    return total === 0 ? 0 : Math.round((done / total) * 100);
+  }
   },
   methods: {
     async loadProjectAndTasks() {
@@ -189,7 +191,9 @@ export default {
       this.membersInfo = this.allUsers.filter(u =>
         this.project.members.includes(u.uid)
       );
-      this.usersMap = Object.fromEntries(this.membersInfo.map(u => [u.uid, u.email]));
+      this.usersMap = Object.fromEntries(
+        this.membersInfo.map(u => [u.uid, u.name || u.email])
+      );
     },
 
     async fetchTasks() {
@@ -267,7 +271,7 @@ export default {
       const msg = {
         text: this.newMessage,
         userId: user.uid,
-        userEmail: user.email,
+        userName: this.usersMap[user.uid] || user.email,
         createdAt: serverTimestamp()
       };
 
