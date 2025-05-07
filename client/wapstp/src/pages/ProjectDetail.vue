@@ -44,10 +44,62 @@
       <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
     </div>
 
-    <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-        <input type="checkbox" v-model="filterMineOnly" />
-        Zobrazit pouze moje úkoly
-    </label>
+    <div style="margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 1rem;">
+  <label>
+    <input type="checkbox" v-model="filterMineOnly" />
+    Pouze moje úkoly
+  </label>
+
+  <label>
+    Priorita:
+    <select v-model="filterPriority">
+      <option value="">Vše</option>
+      <option value="high">Vysoká</option>
+      <option value="medium">Střední</option>
+      <option value="low">Nízká</option>
+    </select>
+  </label>
+
+  <label>
+    Termín:
+    <select v-model="filterDate">
+      <option value="">Vše</option>
+      <option value="today">Dnes</option>
+      <option value="upcoming">Budoucí</option>
+      <option value="overdue">Po termínu</option>
+    </select>
+  </label>
+
+  <label>
+    Autor:
+    <select v-model="filterAuthor">
+      <option value="">Všichni</option>
+      <option
+        v-for="user in membersInfo"
+        :key="user.uid"
+        :value="user.uid"
+      >
+        {{ user.name || user.email }}
+      </option>
+    </select>
+  </label>
+
+  <label>
+  Přiřazeno:
+  <select v-model="filterAssignedTo">
+    <option value="">Všichni</option>
+    <option
+      v-for="user in membersInfo"
+      :key="'assigned-' + user.uid"
+      :value="user.uid"
+    >
+      {{ user.name || user.email }}
+    </option>
+  </select>
+</label>
+
+</div>
+
 
 
     <h2>Kanban nástěnka</h2>
@@ -141,7 +193,12 @@ export default {
       isOwner: false,
       messages: [],
       newMessage: '',
-      filterMineOnly: false
+      filterMineOnly: false,
+      filterMineOnly: false,
+      filterPriority: '',
+      filterDate: '',
+      filterAuthor: '',
+      filterAssignedTo: ''
     };
   },
   async mounted() {
@@ -150,17 +207,16 @@ export default {
     this.listenToMessages();
   },
   computed: {
-  tasksByStatus() {
-    const uid = auth.currentUser?.uid;
-    const filterFn = t =>
-      !this.filterMineOnly || (Array.isArray(t.assignedTo) && t.assignedTo.includes(uid));
+    tasksByStatus() {
+  const uid = auth.currentUser?.uid;
 
-    return {
-      todo: this.tasks.filter(t => t.status === 'todo' && filterFn(t)),
-      inProgress: this.tasks.filter(t => t.status === 'in progress' && filterFn(t)),
-      done: this.tasks.filter(t => t.status === 'done' && filterFn(t))
-    };
-  },
+  return {
+    todo: this.tasks.filter(t => this.filter(t, uid) && t.status === 'todo'),
+    inProgress: this.tasks.filter(t => this.filter(t, uid) && t.status === 'in progress'),
+    done: this.tasks.filter(t => this.filter(t, uid) && t.status === 'done')
+  };
+},
+
 
   projectProgress() {
     const total = this.tasks.length;
@@ -289,7 +345,42 @@ export default {
       if (!ts) return '';
       const date = ts.toDate ? ts.toDate() : new Date(ts);
       return date.toLocaleString();
-    }
+    },
+
+    filter(task, uid) {
+  if (this.filterMineOnly && (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(uid))) {
+    return false;
+  }
+
+  if (this.filterPriority && task.priority !== this.filterPriority) {
+    return false;
+  }
+
+  if (this.filterAuthor && task.createdBy?.uid !== this.filterAuthor) {
+    return false;
+  }
+
+  if (this.filterDate && task.dueDate?.toDate) {
+    const now = new Date();
+    const due = task.dueDate.toDate();
+    const isSameDay = d1 => d1.toDateString() === now.toDateString();
+
+    if (this.filterDate === 'today' && !isSameDay(due)) return false;
+    if (this.filterDate === 'upcoming' && due <= now) return false;
+    if (this.filterDate === 'overdue' && due > now) return false;
+  }
+
+  if (
+  this.filterAssignedTo &&
+  (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(this.filterAssignedTo))
+) {
+  return false;
+}
+
+
+  return true;
+}
+
   }
 };
 </script>
