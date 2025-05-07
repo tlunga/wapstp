@@ -9,10 +9,26 @@
 
     <p>{{ task.description }}</p>
 
+    <p v-if="task.dueDate" class="due-date">
+      🗓 Termín: {{ formatDueDate(task.dueDate) }}
+    </p>
+
+    <span :class="['priority-badge', task.priority || 'medium']">
+        Priorita: {{
+    task.priority === 'high'
+      ? 'Vysoká'
+      : task.priority === 'low'
+      ? 'Nízká'
+      : 'Střední'
+      }}
+    </span>
+
+    
+
     <p v-if="task.assignedTo && task.assignedTo.length">
       <em>Přiřazeno:
         <span v-for="(uid, index) in task.assignedTo" :key="uid">
-          {{ usersMap[uid] || 'neznámý' }}<span v-if="index < task.assignedTo.length - 1">, </span>
+          {{ usersMap[uid] || uid }}<span v-if="index < task.assignedTo.length - 1">, </span>
         </span>
       </em>
     </p>
@@ -29,6 +45,13 @@ export default {
   props: {
     task: Object,
     usersMap: Object
+  },
+  methods: {
+    formatDueDate(ts) {
+      if (!ts) return '';
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return date.toLocaleDateString();
+    }
   }
 };
 </script>
@@ -90,4 +113,33 @@ export default {
 .task-actions button:hover {
   background-color: #2563eb;
 }
+
+.due-date {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.3rem;
+}
+
+.priority-badge {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+}
+
+.priority-badge.low {
+  background-color: #3b82f6;
+}
+
+.priority-badge.medium {
+  background-color: #f59e0b;
+}
+
+.priority-badge.high {
+  background-color: #ef4444;
+}
+
 </style>

@@ -16,13 +16,23 @@
         <option value="done">Done</option>
       </select>
 
+      <label>Termín dokončení:</label>
+      <input type="date" v-model="form.dueDate" />
+
       <div>
         <label>Přiřadit členům:</label>
-          <div v-for="uid in members" :key="uid">
-            <input type="checkbox" :value="uid" v-model="form.assignedTo" />
-            {{ usersMap[uid] || uid }}
-          </div>
+        <div v-for="uid in members" :key="uid">
+          <input type="checkbox" :value="uid" v-model="form.assignedTo" />
+          {{ usersMap[uid] || uid }}
+        </div>
       </div>
+
+      <label>Priorita:</label>
+        <select v-model="form.priority">
+        <option value="low">Nízká</option>
+        <option value="medium">Střední</option>
+        <option value="high">Vysoká</option>
+      </select>
 
 
       <button type="submit">{{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}</button>
@@ -38,7 +48,8 @@ import {
   addDoc,
   updateDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from 'firebase/firestore';
 
 export default {
@@ -53,9 +64,11 @@ export default {
         title: '',
         description: '',
         status: 'todo',
-        assignedTo: []
+        assignedTo: [],
+        dueDate: '',
+        priority: 'medium'
       },
-      usersMap: {} // naplníme z ProjectDetail
+      usersMap: {}
     };
   },
   watch: {
@@ -67,7 +80,10 @@ export default {
             title: task.title || '',
             description: task.description || '',
             status: task.status || 'todo',
-            assignedTo: task.assignedTo || []
+            assignedTo: task.assignedTo || [],
+            dueDate: task.dueDate
+              ? task.dueDate.toDate().toISOString().split('T')[0]
+              : ''
           };
         } else {
           this.resetForm();
@@ -79,13 +95,18 @@ export default {
     this.loadUsersMap();
   },
   methods: {
-      async submit() {
-        const task = {
+    async submit() {
+      const task = {
         ...this.form,
-        assignedTo: this.form.assignedTo,
-        createdAt: serverTimestamp(),
-        projectId: this.projectId
+        projectId: this.projectId,
+        createdAt: serverTimestamp()
       };
+
+      
+
+      if (this.form.dueDate) {
+        task.dueDate = Timestamp.fromDate(new Date(this.form.dueDate));
+      }
 
       if (this.taskToEdit?.id) {
         const docRef = doc(db, 'tasks', this.taskToEdit.id);
@@ -103,7 +124,8 @@ export default {
         title: '',
         description: '',
         status: 'todo',
-        assignedTo: []
+        assignedTo: [],
+        dueDate: ''
       };
     },
     async loadUsersMap() {

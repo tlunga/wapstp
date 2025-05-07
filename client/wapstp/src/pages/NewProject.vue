@@ -12,7 +12,7 @@
             :value="user.uid"
             v-model="members"
           />
-          {{ user.email }}
+          {{ user.name || user.email }}
         </div>
   
         <button type="submit">Vytvořit</button>
