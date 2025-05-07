@@ -7,17 +7,16 @@
     <ul>
       <li v-for="user in membersInfo" :key="user.uid">
         {{ user.email }}
+        <span v-if="user.uid === project.ownerId" style="color: #10b981; font-weight: bold;">
+          – vedoucí
+        </span>
       </li>
     </ul>
 
     <div v-if="isOwner">
       <h3>Správa členů týmu:</h3>
       <div v-for="user in allUsers" :key="user.uid">
-        <input
-          type="checkbox"
-          v-model="user.selected"
-          :value="user.uid"
-        />
+        <input type="checkbox" v-model="user.selected" :value="user.uid" />
         {{ user.email }}
       </div>
       <button @click="updateMembers">Uložit změny</button>
