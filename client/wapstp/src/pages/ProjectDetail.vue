@@ -44,6 +44,12 @@
       <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
     </div>
 
+    <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+      <input type="checkbox" v-model="filterMineOnly" />
+      Zobrazit pouze moje úkoly
+    </label>
+
+
     <h2>Kanban nástěnka</h2>
     <div class="kanban-board">
       <div class="kanban-column">
@@ -128,7 +134,8 @@ export default {
       allUsers: [],
       isOwner: false,
       messages: [],
-      newMessage: ''
+      newMessage: '',
+      filterMineOnly: false
     };
   },
   async mounted() {
@@ -138,10 +145,13 @@ export default {
   },
   computed: {
     tasksByStatus() {
-      return {
-        todo: this.tasks.filter(t => t.status === 'todo'),
-        inProgress: this.tasks.filter(t => t.status === 'in progress'),
-        done: this.tasks.filter(t => t.status === 'done')
+      const uid = auth.currentUser?.uid;
+      const filterFn = t => !this.filterMineOnly || t.assignedTo === uid;
+
+  return {
+      todo: this.tasks.filter(t => t.status === 'todo' && filterFn(t)),
+      inProgress: this.tasks.filter(t => t.status === 'in progress' && filterFn(t)),
+      done: this.tasks.filter(t => t.status === 'done' && filterFn(t))
       };
     },
     projectProgress() {
