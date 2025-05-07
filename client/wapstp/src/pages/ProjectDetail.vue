@@ -7,9 +7,7 @@
     <ul>
       <li v-for="user in membersInfo" :key="user.uid">
         {{ user.email }}
-        <span v-if="user.uid === project.ownerId" style="color: #10b981; font-weight: bold;">
-          – vedoucí
-        </span>
+        <span v-if="user.uid === project.ownerId" style="color: #10b981; font-weight: bold;"> – vedoucí</span>
       </li>
     </ul>
 
@@ -32,78 +30,64 @@
     />
 
     <div style="margin-top: 1rem;">
-  <strong>Průběh projektu:</strong>
-  <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 0.25rem;">
-    <div
-      :style="{
-        width: projectProgress + '%',
-        background: '#10b981',
-        height: '100%',
-        transition: 'width 0.3s'
-      }"
-    ></div>
-  </div>
-  <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
-</div>
+      <strong>Průběh projektu:</strong>
+      <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 0.25rem;">
+        <div
+          :style="{
+            width: projectProgress + '%',
+            background: '#10b981',
+            height: '100%',
+            transition: 'width 0.3s'
+          }"
+        ></div>
+      </div>
+      <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
+    </div>
 
     <h2>Kanban nástěnka</h2>
     <div class="kanban-board">
       <div class="kanban-column">
         <h3>To Do</h3>
-        <draggable
-          v-model="tasksByStatus.todo"
-          group="tasks"
-          @end="onDragEnd"
-          item-key="id"
-        >
+        <draggable v-model="tasksByStatus.todo" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard
-              :task="element"
-              :usersMap="usersMap"
-              @edit="taskToEdit = element"
-              @delete="deleteTask"
-            />
+            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
           </template>
         </draggable>
       </div>
 
       <div class="kanban-column">
         <h3>In Progress</h3>
-        <draggable
-          v-model="tasksByStatus.inProgress"
-          group="tasks"
-          @end="onDragEnd"
-          item-key="id"
-        >
+        <draggable v-model="tasksByStatus.inProgress" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard
-              :task="element"
-              :usersMap="usersMap"
-              @edit="taskToEdit = element"
-              @delete="deleteTask"
-            />
+            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
           </template>
         </draggable>
       </div>
 
       <div class="kanban-column">
         <h3>Done</h3>
-        <draggable
-          v-model="tasksByStatus.done"
-          group="tasks"
-          @end="onDragEnd"
-          item-key="id"
-        >
+        <draggable v-model="tasksByStatus.done" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard
-              :task="element"
-              :usersMap="usersMap"
-              @edit="taskToEdit = element"
-              @delete="deleteTask"
-            />
+            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
           </template>
         </draggable>
       </div>
+    </div>
+
+    <h2>Projektový chat</h2>
+    <div class="chat-box">
+      <div ref="chatContainer" class="chat-messages">
+        <div v-for="msg in messages" :key="msg.id" class="chat-message">
+          <strong>{{ msg.userEmail }}:</strong> {{ msg.text }}<br />
+          <small style="color: #6b7280;">
+            {{ formatTimestamp(msg.createdAt) }}
+          </small>
+        </div>
+      </div>
+      <form @submit.prevent="sendMessage" class="chat-form">
+        <input v-model="newMessage" type="text" placeholder="Napsat zprávu..." required />
+        <button type="submit">Odeslat</button>
+      </form>
     </div>
   </div>
 
@@ -123,7 +107,10 @@ import {
   getDocs,
   orderBy,
   deleteDoc,
-  updateDoc
+  updateDoc,
+  addDoc,
+  onSnapshot,
+  serverTimestamp
 } from 'firebase/firestore';
 import TaskForm from '../components/TaskForm.vue';
 import TaskCard from '../components/TaskCard.vue';
@@ -139,12 +126,15 @@ export default {
       usersMap: {},
       membersInfo: [],
       allUsers: [],
-      isOwner: false
+      isOwner: false,
+      messages: [],
+      newMessage: ''
     };
   },
   async mounted() {
     await this.loadProjectAndTasks();
     await this.loadProjectMembers();
+    this.listenToMessages();
   },
   computed: {
     tasksByStatus() {
@@ -155,29 +145,21 @@ export default {
       };
     },
     projectProgress() {
-        const total = this.tasks.length;
-        const done = this.tasks.filter(t => t.status === 'done').length;
-    return total === 0 ? 0 : Math.round((done / total) * 100);
-}
-
+      const total = this.tasks.length;
+      const done = this.tasks.filter(t => t.status === 'done').length;
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    }
   },
   methods: {
     async loadProjectAndTasks() {
-      try {
-        const projectId = this.$route.params.id;
-        const docRef = doc(db, 'projects', projectId);
-        const docSnap = await getDoc(docRef);
+      const projectId = this.$route.params.id;
+      const docRef = doc(db, 'projects', projectId);
+      const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          this.project = { id: docSnap.id, ...docSnap.data() };
-          this.isOwner =
-            auth.currentUser && auth.currentUser.uid === this.project.ownerId;
-          await this.fetchTasks();
-        } else {
-          console.error('Projekt nenalezen');
-        }
-      } catch (err) {
-        console.error('Chyba při načítání projektu:', err);
+      if (docSnap.exists()) {
+        this.project = { id: docSnap.id, ...docSnap.data() };
+        this.isOwner = auth.currentUser && auth.currentUser.uid === this.project.ownerId;
+        await this.fetchTasks();
       }
     },
 
@@ -227,10 +209,7 @@ export default {
     },
 
     async updateMembers() {
-      const newMembers = this.allUsers
-        .filter(u => u.selected)
-        .map(u => u.uid);
-
+      const newMembers = this.allUsers.filter(u => u.selected).map(u => u.uid);
       const docRef = doc(db, 'projects', this.project.id);
       await updateDoc(docRef, { members: newMembers });
 
@@ -251,6 +230,45 @@ export default {
         await updateDoc(docRef, { status: newStatus });
         await this.fetchTasks();
       }
+    },
+
+    listenToMessages() {
+      const q = query(
+        collection(db, 'projects', this.project.id, 'messages'),
+        orderBy('createdAt', 'asc')
+      );
+
+      onSnapshot(q, snapshot => {
+        this.messages = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        this.$nextTick(() => {
+          const el = this.$refs.chatContainer;
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      });
+    },
+
+    async sendMessage() {
+      const user = auth.currentUser;
+      if (!user || !this.project.members.includes(user.uid)) return;
+
+      const msg = {
+        text: this.newMessage,
+        userId: user.uid,
+        userEmail: user.email,
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, 'projects', this.project.id, 'messages'), msg);
+      this.newMessage = '';
+    },
+
+    formatTimestamp(ts) {
+      if (!ts) return '';
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return date.toLocaleString();
     }
   }
 };
@@ -348,5 +366,58 @@ label {
   font-weight: bold;
   margin-top: 0.5rem;
   display: block;
+}
+
+.kanban-board {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.kanban-column {
+  flex: 1;
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 8px;
+  min-height: 300px;
+}
+
+.chat-box {
+  margin-top: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f9fafb;
+}
+
+.chat-messages {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.chat-message {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem;
+  background: #e5e7eb;
+  border-radius: 6px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 0.5rem;
+}
+
+.chat-form button {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
 }
 </style>
