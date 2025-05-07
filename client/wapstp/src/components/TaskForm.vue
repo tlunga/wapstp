@@ -1,28 +1,33 @@
 <template>
-  <form @submit.prevent="handleSubmit">
-    <h3>{{ editMode ? 'Upravit úkol' : 'Nový úkol' }}</h3>
-    <input v-model="title" type="text" placeholder="Název úkolu" required />
-    <textarea v-model="description" placeholder="Popis úkolu" required></textarea>
+  <div class="task-form">
+    <h3>{{ taskToEdit ? 'Upravit úkol' : 'Nový úkol' }}</h3>
 
-    <label>Stav:</label>
-    <select v-model="status">
-      <option value="todo">To Do</option>
-      <option value="in progress">In Progress</option>
-      <option value="done">Done</option>
-    </select>
+    <form @submit.prevent="submit">
+      <label>Název úkolu:</label>
+      <input v-model="form.title" type="text" required />
 
-    <label>Přiřadit uživateli:</label>
-    <select v-model="assignedTo">
-      <option disabled value="">-- vyber uživatele --</option>
-      <option v-for="user in users" :key="user.uid" :value="user.uid">
-        {{ user.email }}
-      </option>
-    </select>
+      <label>Popis:</label>
+      <textarea v-model="form.description" rows="3" />
 
-    <button type="submit">{{ editMode ? 'Uložit změny' : 'Přidat úkol' }}</button>
-    <button v-if="editMode" @click.prevent="$emit('cancelEdit')">Zrušit</button>
-    <p v-if="error" style="color:red">{{ error }}</p>
-  </form>
+      <label>Stav:</label>
+      <select v-model="form.status" required>
+        <option value="todo">To Do</option>
+        <option value="in progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+
+      <div>
+        <label>Přiřadit členům:</label>
+        <div v-for="uid in members" :key="uid">
+          <input type="checkbox" :value="uid" v-model="form.assignedTo" />
+          {{ usersMap[uid] || uid }}
+        </div>
+      </div>
+
+      <button type="submit">{{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}</button>
+      <button type="button" v-if="taskToEdit" @click="$emit('cancelEdit')">Zrušit</button>
+    </form>
+  </div>
 </template>
 
 <script>
@@ -32,81 +37,124 @@ import {
   addDoc,
   updateDoc,
   doc,
-  getDocs,
   serverTimestamp
 } from 'firebase/firestore';
 
 export default {
   props: {
     projectId: String,
-    taskToEdit: Object
+    taskToEdit: Object,
+    members: Array
   },
   data() {
     return {
-      title: '',
-      description: '',
-      status: 'todo',
-      assignedTo: '',
-      users: [],
-      error: ''
+      form: {
+        title: '',
+        description: '',
+        status: 'todo',
+        assignedTo: []
+      },
+      usersMap: {} // naplníme z ProjectDetail
     };
-  },
-  computed: {
-    editMode() {
-      return !!this.taskToEdit;
-    }
   },
   watch: {
     taskToEdit: {
       immediate: true,
       handler(task) {
         if (task) {
-          this.title = task.title;
-          this.description = task.description;
-          this.status = task.status;
-          this.assignedTo = task.assignedTo || '';
+          this.form = {
+            title: task.title || '',
+            description: task.description || '',
+            status: task.status || 'todo',
+            assignedTo: task.assignedTo || []
+          };
         } else {
-          this.title = '';
-          this.description = '';
-          this.status = 'todo';
-          this.assignedTo = '';
+          this.resetForm();
         }
       }
     }
   },
-  async mounted() {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    this.users = querySnapshot.docs.map(doc => ({
-      uid: doc.id,
-      ...doc.data()
-    }));
+  mounted() {
+    this.loadUsersMap();
   },
   methods: {
-    async handleSubmit() {
-      try {
-        const taskData = {
-          title: this.title,
-          description: this.description,
-          status: this.status,
-          assignedTo: this.assignedTo
-        };
+      async submit() {
+        const task = {
+        ...this.form,
+        assignedTo: this.form.assignedTo,
+        createdAt: serverTimestamp(),
+        projectId: this.projectId
+      };
 
-        if (this.editMode) {
-          const docRef = doc(db, 'tasks', this.taskToEdit.id);
-          await updateDoc(docRef, taskData);
-          this.$emit('taskUpdated');
-        } else {
-          await addDoc(collection(db, 'tasks'), {
-            ...taskData,
-            projectId: this.projectId,
-            createdAt: serverTimestamp()
-          });
-          this.$emit('taskAdded');
-        }
-      } catch (err) {
-        this.error = err.message;
+      if (this.taskToEdit?.id) {
+        const docRef = doc(db, 'tasks', this.taskToEdit.id);
+        await updateDoc(docRef, task);
+        this.$emit('taskUpdated');
+      } else {
+        await addDoc(collection(db, 'tasks'), task);
+        this.$emit('taskAdded');
       }
+
+      this.resetForm();
+    },
+    resetForm() {
+      this.form = {
+        title: '',
+        description: '',
+        status: 'todo',
+        assignedTo: []
+      };
+    },
+    async loadUsersMap() {
+      const { getDocs, collection } = await import('firebase/firestore');
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      querySnapshot.forEach(doc => {
+        this.usersMap[doc.id] = doc.data().email || doc.id;
+      });
     }
   }
 };
 </script>
+
+<style scoped>
+.task-form {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 0.75rem;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+button {
+  margin-right: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #2563eb;
+}
+</style>

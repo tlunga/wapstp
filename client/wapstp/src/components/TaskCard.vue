@@ -1,16 +1,20 @@
 <template>
   <div class="task-card">
     <div class="task-header">
+      <strong>{{ task.title }}</strong>
       <span :class="['status-badge', task.status.replace(' ', '-')]">
         {{ task.status }}
       </span>
-      <strong>{{ task.title }}</strong>
     </div>
 
     <p>{{ task.description }}</p>
 
-    <p v-if="task.assignedTo">
-      <em>Přiřazeno: {{ usersMap[task.assignedTo] || 'neznámý' }}</em>
+    <p v-if="task.assignedTo && task.assignedTo.length">
+      <em>Přiřazeno:
+        <span v-for="(uid, index) in task.assignedTo" :key="uid">
+          {{ usersMap[uid] || 'neznámý' }}<span v-if="index < task.assignedTo.length - 1">, </span>
+        </span>
+      </em>
     </p>
 
     <div class="task-actions">
@@ -43,7 +47,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.5rem;
 }
 
 .status-badge {
