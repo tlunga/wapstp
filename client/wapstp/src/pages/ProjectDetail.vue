@@ -1,4 +1,5 @@
 <template>
+  <ProjectDetailLayout :title="project?.name">
   <div v-if="project">
     <h1>{{ project.name }}</h1>
     <p>{{ project.description }}</p>
@@ -158,9 +159,11 @@
   <div v-else>
     <p>Načítám projekt...</p>
   </div>
+</ProjectDetailLayout>
 </template>
 
 <script>
+import ProjectDetailLayout from '../layouts/ProjectDetailLayout.vue';
 import { auth, db } from '../firebase';
 import {
   doc,
@@ -181,7 +184,7 @@ import TaskCard from '../components/TaskCard.vue';
 import draggable from 'vuedraggable';
 
 export default {
-  components: { TaskForm, TaskCard, draggable },
+  components: { TaskForm, TaskCard, draggable, ProjectDetailLayout },
   data() {
     return {
       project: null,
