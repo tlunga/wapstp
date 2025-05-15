@@ -12,6 +12,8 @@
       </li>
     </ul>
 
+<!--
+
     <div v-if="isOwner">
       <h3>Správa členů týmu:</h3>
       <div v-for="user in allUsers" :key="user.uid">
@@ -21,6 +23,10 @@
       <button @click="updateMembers">Uložit změny</button>
     </div>
 
+  -->
+
+<!--
+
     <TaskForm
       :projectId="project.id"
       :taskToEdit="taskToEdit"
@@ -29,6 +35,68 @@
       @taskUpdated="onTaskUpdated"
       @cancelEdit="taskToEdit = null"
     />
+-->
+    
+    <!-- Tlačítko pro přidání úkolu -->
+<v-btn color="primary" class="my-4" @click="openTaskDialog">+ Přidat úkol</v-btn>
+
+<!-- Tlačítko pro správu členů -->
+<v-btn color="secondary" class="ml-2" v-if="isOwner" @click="showMembersDialog = true">
+  Správa členů
+</v-btn>
+
+<!-- Dialog pro výběr členů -->
+<v-dialog v-model="showMembersDialog" max-width="600px">
+  <v-card>
+    <v-card-title>
+      <span class="text-h6">Správa členů týmu</span>
+      <v-spacer />
+      <v-btn icon @click="showMembersDialog = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-card-title>
+    <v-card-text>
+      <v-list>
+        <v-list-item v-for="user in allUsers" :key="user.uid">
+          <v-list-item-content>
+            <v-checkbox
+              v-model="user.selected"
+              :label="usersMap[user.uid] || user.email"
+              density="compact"
+              hide-details
+            />
+          </v-list-item-content>
+        </v-list-item>
+      </v-list>
+    </v-card-text>
+    <v-card-actions class="justify-end">
+      <v-btn color="primary" @click="saveMembers">Uložit změny</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+<!-- Dialog s TaskForm -->
+<v-dialog v-model="showTaskDialog" max-width="600px">
+  <v-card>
+    <v-card-title>
+      <span class="text-h6">{{ taskToEdit ? 'Upravit úkol' : 'Nový úkol' }}</span>
+      <v-spacer />
+      <v-btn icon @click="closeTaskDialog">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-card-title>
+    <v-card-text>
+      <TaskForm
+        :projectId="project.id"
+        :taskToEdit="taskToEdit"
+        :members="project.members"
+        @taskAdded="onTaskSaved"
+        @taskUpdated="onTaskSaved"
+        @cancelEdit="closeTaskDialog"
+      />
+    </v-card-text>
+  </v-card>
+</v-dialog>
 
     <div style="margin-top: 1rem;">
       <strong>Průběh projektu:</strong>
@@ -99,10 +167,8 @@
   </select>
 </label>
 
+
 </div>
-
-
-
     <h2>Kanban nástěnka</h2>
     <div class="kanban-board">
       <div class="kanban-column">
@@ -112,7 +178,7 @@
             <TaskCard
               :task="element"
               :usersMap="usersMap"
-              @edit="taskToEdit = element"
+              @edit="editTask"
               @delete="deleteTask"
               @statusChanged="fetchTasks"
             />
@@ -124,7 +190,7 @@
         <h3>In Progress</h3>
         <draggable v-model="tasksByStatus.inProgress" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
+            <TaskCard :task="element" :usersMap="usersMap" @edit="editTask" @delete="deleteTask" />
           </template>
         </draggable>
       </div>
@@ -133,7 +199,7 @@
         <h3>Done</h3>
         <draggable v-model="tasksByStatus.done" group="tasks" @end="onDragEnd" item-key="id">
           <template #item="{ element }">
-            <TaskCard :task="element" :usersMap="usersMap" @edit="taskToEdit = element" @delete="deleteTask" />
+            <TaskCard :task="element" :usersMap="usersMap" @edit="editTask" @delete="deleteTask" />
           </template>
         </draggable>
       </div>
@@ -196,12 +262,13 @@ export default {
       isOwner: false,
       messages: [],
       newMessage: '',
-      filterMineOnly: false,
+      showTaskDialog: false,
       filterMineOnly: false,
       filterPriority: '',
       filterDate: '',
       filterAuthor: '',
-      filterAssignedTo: ''
+      filterAssignedTo: '',
+      showMembersDialog: false,
     };
   },
   async mounted() {
@@ -211,21 +278,19 @@ export default {
   },
   computed: {
     tasksByStatus() {
-  const uid = auth.currentUser?.uid;
+      const uid = auth.currentUser?.uid;
 
-  return {
-    todo: this.tasks.filter(t => this.filter(t, uid) && t.status === 'todo'),
-    inProgress: this.tasks.filter(t => this.filter(t, uid) && t.status === 'in progress'),
-    done: this.tasks.filter(t => this.filter(t, uid) && t.status === 'done')
-  };
-},
-
-
-  projectProgress() {
-    const total = this.tasks.length;
-    const done = this.tasks.filter(t => t.status === 'done').length;
-    return total === 0 ? 0 : Math.round((done / total) * 100);
-  }
+      return {
+        todo: this.tasks.filter(t => this.filter(t, uid) && t.status === 'todo'),
+        inProgress: this.tasks.filter(t => this.filter(t, uid) && t.status === 'in progress'),
+        done: this.tasks.filter(t => this.filter(t, uid) && t.status === 'done')
+      };
+    },
+    projectProgress() {
+      const total = this.tasks.length;
+      const done = this.tasks.filter(t => t.status === 'done').length;
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    }
   },
   methods: {
     async loadProjectAndTasks() {
@@ -296,6 +361,12 @@ export default {
       await this.loadProjectMembers();
     },
 
+    async saveMembers() {
+  await this.updateMembers();
+  this.showMembersDialog = false;
+}
+,
+
     async onDragEnd(event) {
       const { item, to } = event;
 
@@ -350,43 +421,62 @@ export default {
       return date.toLocaleString();
     },
 
+    openTaskDialog() {
+      this.taskToEdit = null;
+      this.showTaskDialog = true;
+    },
+
+    closeTaskDialog() {
+      this.showTaskDialog = false;
+      this.taskToEdit = null;
+    },
+
+    onTaskSaved() {
+      this.fetchTasks();
+      this.closeTaskDialog();
+    },
+
+    editTask(task) {
+      this.taskToEdit = task;
+      this.showTaskDialog = true;
+    },
+
     filter(task, uid) {
-  if (this.filterMineOnly && (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(uid))) {
-    return false;
-  }
+      if (this.filterMineOnly && (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(uid))) {
+        return false;
+      }
 
-  if (this.filterPriority && task.priority !== this.filterPriority) {
-    return false;
-  }
+      if (this.filterPriority && task.priority !== this.filterPriority) {
+        return false;
+      }
 
-  if (this.filterAuthor && task.createdBy?.uid !== this.filterAuthor) {
-    return false;
-  }
+      if (this.filterAuthor && task.createdBy?.uid !== this.filterAuthor) {
+        return false;
+      }
 
-  if (this.filterDate && task.dueDate?.toDate) {
-    const now = new Date();
-    const due = task.dueDate.toDate();
-    const isSameDay = d1 => d1.toDateString() === now.toDateString();
+      if (this.filterDate && task.dueDate?.toDate) {
+        const now = new Date();
+        const due = task.dueDate.toDate();
+        const isSameDay = d1 => d1.toDateString() === now.toDateString();
 
-    if (this.filterDate === 'today' && !isSameDay(due)) return false;
-    if (this.filterDate === 'upcoming' && due <= now) return false;
-    if (this.filterDate === 'overdue' && due > now) return false;
-  }
+        if (this.filterDate === 'today' && !isSameDay(due)) return false;
+        if (this.filterDate === 'upcoming' && due <= now) return false;
+        if (this.filterDate === 'overdue' && due > now) return false;
+      }
 
-  if (
-  this.filterAssignedTo &&
-  (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(this.filterAssignedTo))
-) {
-  return false;
-}
+      if (
+        this.filterAssignedTo &&
+        (!Array.isArray(task.assignedTo) || !task.assignedTo.includes(this.filterAssignedTo))
+      ) {
+        return false;
+      }
 
-
-  return true;
-}
-
+      return true;
+    }
   }
 };
 </script>
+
 
 <style scoped>
 h1 {

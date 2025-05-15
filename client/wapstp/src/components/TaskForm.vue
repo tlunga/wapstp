@@ -1,42 +1,64 @@
 <template>
-  <div class="task-form">
-    <h3>{{ taskToEdit ? 'Upravit úkol' : 'Nový úkol' }}</h3>
+  <v-form @submit.prevent="submit" class="pa-2">
+    <v-text-field label="Název úkolu" v-model="form.title" required />
 
-    <form @submit.prevent="submit">
-      <label>Název úkolu:</label>
-      <input v-model="form.title" type="text" required />
+    <v-textarea label="Popis" v-model="form.description" rows="3" />
 
-      <label>Popis:</label>
-      <textarea v-model="form.description" rows="3" />
+    <v-select
+      label="Stav"
+      v-model="form.status"
+      :items="[
+        { value: 'todo', title: 'To Do' },
+        { value: 'in progress', title: 'In Progress' },
+        { value: 'done', title: 'Done' }
+      ]"
+      required
+    />
 
-      <label>Stav:</label>
-      <select v-model="form.status" required>
-        <option value="todo">To Do</option>
-        <option value="in progress">In Progress</option>
-        <option value="done">Done</option>
-      </select>
+    <v-text-field
+      label="Termín dokončení"
+      v-model="form.dueDate"
+      type="date"
+    />
 
-      <label>Termín dokončení:</label>
-      <input type="date" v-model="form.dueDate" />
+    <v-select
+      label="Priorita"
+      v-model="form.priority"
+      :items="[
+        { value: 'low', title: 'Nízká' },
+        { value: 'medium', title: 'Střední' },
+        { value: 'high', title: 'Vysoká' }
+      ]"
+    />
 
-      <label>Priorita:</label>
-      <select v-model="form.priority">
-        <option value="low">Nízká</option>
-        <option value="medium">Střední</option>
-        <option value="high">Vysoká</option>
-      </select>
+    <v-label class="mt-3 font-weight-bold">Přiřadit členům:</v-label>
+    <v-checkbox
+      v-for="uid in members"
+      :key="uid"
+      :label="usersMap[uid] || uid"
+      :value="uid"
+      v-model="form.assignedTo"
+      density="compact"
+      hide-details
+    />
 
-      <label>Přiřadit členům:</label>
-      <div v-for="uid in members" :key="uid">
-        <input type="checkbox" :value="uid" v-model="form.assignedTo" />
-        {{ usersMap[uid] || uid }}
-      </div>
-
-      <button type="submit">{{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}</button>
-      <button type="button" v-if="taskToEdit" @click="$emit('cancelEdit')">Zrušit</button>
-    </form>
-  </div>
+    <v-row class="mt-4" justify="end">
+      <v-btn type="submit" color="primary">
+        {{ taskToEdit ? 'Uložit změny' : 'Přidat úkol' }}
+      </v-btn>
+      <v-btn
+        v-if="taskToEdit"
+        color="grey"
+        variant="text"
+        class="ml-2"
+        @click="$emit('cancelEdit')"
+      >
+        Zrušit
+      </v-btn>
+    </v-row>
+  </v-form>
 </template>
+
 
 <script>
 import { db, auth } from '../firebase';
