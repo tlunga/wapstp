@@ -1,108 +1,113 @@
 <template>
-    <div class="profile-page">
-      <h1>Můj profil</h1>
-  
-      <form @submit.prevent="saveProfile">
-        <label for="name">Jméno:</label>
-        <input v-model="name" type="text" id="name" required />
-  
-        <label for="email">Email:</label>
-        <input v-model="email" type="email" id="email" disabled />
-  
-        <label for="info">Informace:</label>
-        <textarea v-model="info" id="info" rows="4" />
-  
-        <button type="submit">Upravit profil</button>
-        <p v-if="message" style="color: green;">{{ message }}</p>
-      </form>
-    </div>
-  </template>
-  
-  <script>
-  import { auth, db } from '../firebase';
-  import { doc, getDoc, setDoc } from 'firebase/firestore';
-  
-  export default {
-    data() {
-      return {
-        name: '',
-        email: '',
-        info: '',
-        message: ''
-      };
-    },
-    async mounted() {
+  <DashboardLayout>
+    <v-container class="py-6">
+      <v-row justify="center">
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title class="text-h6 font-weight-bold">Můj profil</v-card-title>
+            <v-card-text>
+              <v-container>
+                <v-row justify="center" class="mb-4">
+                  <v-avatar size="100">
+                    <v-img
+                      :src="photoURL || 'https://www.w3schools.com/howto/img_avatar.png'"
+                      alt="Profil"
+                    />
+                  </v-avatar>
+                </v-row>
+
+                <v-form @submit.prevent="saveProfile">
+                  <v-text-field
+                    v-model="name"
+                    label="Jméno"
+                    prepend-inner-icon="mdi-account"
+                    required
+                  />
+                  <v-text-field
+                    v-model="email"
+                    label="Email"
+                    prepend-inner-icon="mdi-email"
+                    disabled
+                  />
+                  <v-textarea
+                    v-model="info"
+                    label="Informace o mně"
+                    rows="3"
+                    prepend-inner-icon="mdi-information"
+                  />
+
+                  <v-btn type="submit" color="primary" class="mt-4" block>Uložit profil</v-btn>
+
+                  <v-alert
+                    v-if="message"
+                    type="success"
+                    class="mt-4"
+                    dense
+                    text
+                  >
+                    {{ message }}
+                  </v-alert>
+                </v-form>
+              </v-container>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </DashboardLayout>
+</template>
+
+
+<script>
+import DashboardLayout from '../layouts/DashboardLayout.vue';
+import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+export default {
+  components: {
+    DashboardLayout
+  },
+  data() {
+    return {
+      name: '',
+      email: '',
+      info: '',
+      photoURL: '',
+      message: ''
+    };
+  },
+  async mounted() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    this.photoURL = user.photoURL || '';
+
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      this.name = data.name || '';
+      this.email = data.email || user.email;
+      this.info = data.info || '';
+    } else {
+      this.email = user.email;
+    }
+  },
+  methods: {
+    async saveProfile() {
       const user = auth.currentUser;
       if (!user) return;
-  
+
       const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-  
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        this.name = data.name || '';
-        this.email = data.email || user.email;
-        this.info = data.info || '';
-      } else {
-        this.email = user.email;
-      }
-    },
-    methods: {
-      async saveProfile() {
-        const user = auth.currentUser;
-        if (!user) return;
-  
-        const docRef = doc(db, 'users', user.uid);
-        await setDoc(docRef, {
-          name: this.name,
-          email: this.email,
-          info: this.info
-        });
-  
-        this.message = 'Profil byl úspěšně uložen.';
-      }
+      await setDoc(docRef, {
+        name: this.name,
+        email: this.email,
+        info: this.info
+      });
+
+      this.message = 'Profil byl úspěšně uložen.';
     }
-  };
-  </script>
-  
-  <style scoped>
-  .profile-page {
-    max-width: 500px;
-    margin: auto;
-    background: #f8f9fa;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
   }
-  
-  label {
-    display: block;
-    margin-top: 1rem;
-    font-weight: bold;
-  }
-  
-  input,
-  textarea {
-    width: 100%;
-    padding: 0.6rem;
-    margin-top: 0.4rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-  }
-  
-  button {
-    margin-top: 1.5rem;
-    padding: 0.6rem 1.2rem;
-    background-color: #3b82f6;
-    color: white;
-    font-weight: bold;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #2563eb;
-  }
-  </style>
-  
+};
+</script>
