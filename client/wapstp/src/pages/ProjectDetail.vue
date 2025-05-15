@@ -4,13 +4,31 @@
     <h1>{{ project.name }}</h1>
     <p>{{ project.description }}</p>
 
-    <h3>Členové projektu:</h3>
-    <ul>
-      <li v-for="user in membersInfo" :key="user.uid">
-        {{ usersMap[user.uid] || user.email }}
-        <span v-if="user.uid === project.ownerId" style="color: #10b981; font-weight: bold;"> – vedoucí</span>
-      </li>
-    </ul>
+    <h3 class="mb-2">Členové projektu:</h3>
+<v-row dense>
+<v-col
+  v-for="user in membersInfo"
+  :key="user.uid"
+  cols="4"
+  sm="2"
+  class="text-center"
+>
+  <router-link :to="`/user/${user.uid}`" style="text-decoration: none; color: inherit;">
+    <v-avatar size="56" class="mx-auto mb-2">
+      <v-img :src="user.photoURL || 'https://www.w3schools.com/howto/img_avatar.png'" />
+    </v-avatar>
+
+    <div class="text-body-2 font-weight-medium">
+      {{ user.name || user.email }}
+    </div>
+
+    <div v-if="user.uid === project.ownerId" class="text-caption" style="color: #10b981">
+      vedoucí
+    </div>
+  </router-link>
+</v-col>
+
+</v-row>
 
 <!--
 
@@ -293,6 +311,21 @@ export default {
     }
   },
   methods: {
+
+    async reloadProject() {
+  this.project = null
+  this.tasks = []
+  this.taskToEdit = null
+  this.membersInfo = []
+  this.allUsers = []
+  this.usersMap = {}
+  this.messages = []
+  await this.loadProjectAndTasks()
+  await this.loadProjectMembers()
+  this.listenToMessages()
+},
+
+    
     async loadProjectAndTasks() {
       const projectId = this.$route.params.id;
       const docRef = doc(db, 'projects', projectId);
@@ -310,9 +343,10 @@ export default {
 
       const querySnapshot = await getDocs(collection(db, 'users'));
       this.allUsers = querySnapshot.docs.map(doc => ({
-        uid: doc.id,
-        ...doc.data()
+          uid: doc.id,
+          ...doc.data()
       }));
+
 
       this.allUsers.forEach(u => {
         u.selected = this.project.members.includes(u.uid);
@@ -364,8 +398,7 @@ export default {
     async saveMembers() {
   await this.updateMembers();
   this.showMembersDialog = false;
-}
-,
+},
 
     async onDragEnd(event) {
       const { item, to } = event;
@@ -472,6 +505,11 @@ export default {
       }
 
       return true;
+    }
+  },
+  watch: {
+    '$route.params.id': function () {
+      this.reloadProject()
     }
   }
 };
