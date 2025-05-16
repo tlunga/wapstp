@@ -1,46 +1,66 @@
 <template>
-  <div class="task-card">
-    <div class="task-header">
-      <strong>{{ task.title }}</strong>
-      <span :class="['status-badge', task.status.replace(' ', '-')]">
+  <v-card class="mb-4" outlined>
+    <v-card-title class="d-flex justify-space-between align-center">
+      <span class="font-weight-medium">{{ task.title }}</span>
+      <v-chip
+        :color="statusColor(task.status)"
+        class="text-white"
+        small
+        label
+      >
         {{ task.status }}
-      </span>
-    </div>
+      </v-chip>
+    </v-card-title>
 
-    <small class="task-meta">
-      🧑 {{ task.createdBy?.name || 'neznámý' }} – 🕒 {{ formatCreatedAt(task.createdAt) }}
-    </small>
+    <v-card-subtitle class="text-caption text-grey">
+      🧑 {{ task.createdBy?.name || 'neznámý' }} • 🕒 {{ formatCreatedAt(task.createdAt) }}
+    </v-card-subtitle>
 
-    <p>{{ task.description }}</p>
+    <v-card-text>
+      <p>{{ task.description }}</p>
 
-    <span :class="['priority-badge', task.priority || 'medium']">
-      Priorita:
-      {{
-        task.priority === 'high'
-          ? 'Vysoká'
-          : task.priority === 'low'
-          ? 'Nízká'
-          : 'Střední'
-      }}
-    </span>
+      <v-chip
+        :color="priorityColor(task.priority)"
+        class="text-white mt-2"
+        small
+        label
+      >
+        Priorita:
+        {{
+          task.priority === 'high'
+            ? 'Vysoká'
+            : task.priority === 'low'
+            ? 'Nízká'
+            : 'Střední'
+        }}
+      </v-chip>
 
-    <p v-if="task.dueDate" class="due-date">
-      🗓 Termín: {{ formatDueDate(task.dueDate) }}
-    </p>
+      <div v-if="task.dueDate" class="mt-2 text-caption text-grey">
+        🗓 Termín: {{ formatDueDate(task.dueDate) }}
+      </div>
 
-    <p v-if="task.assignedTo && task.assignedTo.length">
-      <em>Přiřazeno:
+      <div
+        v-if="task.assignedTo && task.assignedTo.length"
+        class="mt-2 text-body-2"
+      >
+        <strong>Přiřazeno:</strong>
         <span v-for="(uid, index) in task.assignedTo" :key="uid">
           {{ usersMap[uid] || uid }}<span v-if="index < task.assignedTo.length - 1">, </span>
         </span>
-      </em>
-    </p>
+      </div>
+    </v-card-text>
 
-    <div class="task-actions">
-      <button @click="$emit('edit', task)">Upravit</button>
-      <button @click="$emit('delete', task.id)">Smazat</button>
-    </div>
-  </div>
+    <v-card-actions>
+      <v-btn size="small" color="primary" @click="$emit('edit', task)">
+        <v-icon start>mdi-pencil</v-icon>
+        Upravit
+      </v-btn>
+      <v-btn size="small" color="error" @click="$emit('delete', task.id)">
+        <v-icon start>mdi-delete</v-icon>
+        Smazat
+      </v-btn>
+    </v-card-actions>
+  </v-card>
 </template>
 
 <script>
@@ -59,6 +79,16 @@ export default {
       if (!ts) return '';
       const date = ts.toDate ? ts.toDate() : new Date(ts);
       return date.toLocaleString();
+    },
+    priorityColor(priority) {
+      if (priority === 'high') return 'red';
+      if (priority === 'low') return 'blue';
+      return 'orange';
+    },
+    statusColor(status) {
+      if (status === 'done') return 'green';
+      if (status === 'in progress') return 'orange';
+      return 'grey';
     }
   }
 };

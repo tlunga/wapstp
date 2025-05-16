@@ -32,6 +32,15 @@
     />
 
     <v-label class="mt-3 font-weight-bold">Přiřadit členům:</v-label>
+
+    <v-checkbox
+      v-model="assignToAll"
+      label="Přiřadit všem"
+      hide-details
+      density="compact"
+      class="mb-2"
+    />
+
     <v-checkbox
       v-for="uid in members"
       :key="uid"
@@ -58,7 +67,6 @@
     </v-row>
   </v-form>
 </template>
-
 
 <script>
 import { db, auth } from '../firebase';
@@ -87,6 +95,7 @@ export default {
         dueDate: '',
         priority: 'medium'
       },
+      assignToAll: false,
       usersMap: {}
     };
   },
@@ -105,9 +114,28 @@ export default {
               : '',
             priority: task.priority || 'medium'
           };
+          this.assignToAll = this.form.assignedTo.length === this.members.length;
         } else {
           this.resetForm();
         }
+      }
+    },
+    assignToAll(val) {
+  if (val) {
+    this.form.assignedTo = [...this.members];
+  } else {
+    this.form.assignedTo = [];
+  }
+},
+
+    'form.assignedTo'(val) {
+      if (val.length !== this.members.length) {
+        this.assignToAll = false;
+      } else if (
+        this.members.every(uid => val.includes(uid)) &&
+        !this.assignToAll
+      ) {
+        this.assignToAll = true;
       }
     }
   },
@@ -153,6 +181,7 @@ export default {
         dueDate: '',
         priority: 'medium'
       };
+      this.assignToAll = false;
     },
     async loadUsersMap() {
       const { getDocs, collection } = await import('firebase/firestore');

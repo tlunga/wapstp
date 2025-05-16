@@ -68,36 +68,9 @@
     </v-card>
   </v-col>
 </v-row>
-
-<!--
-
-    <div v-if="isOwner">
-      <h3>Správa členů týmu:</h3>
-      <div v-for="user in allUsers" :key="user.uid">
-        <input type="checkbox" v-model="user.selected" :value="user.uid" />
-        {{ usersMap[user.uid] || user.email }}
-      </div>
-      <button @click="updateMembers">Uložit změny</button>
-    </div>
-
-  -->
-
-<!--
-
-    <TaskForm
-      :projectId="project.id"
-      :taskToEdit="taskToEdit"
-      :members="project.members"
-      @taskAdded="fetchTasks"
-      @taskUpdated="onTaskUpdated"
-      @cancelEdit="taskToEdit = null"
-    />
--->
     
-    <!-- Tlačítko pro přidání úkolu -->
 <v-btn color="primary" class="my-4" @click="openTaskDialog">+ Přidat úkol</v-btn>
 
-<!-- Tlačítko pro správu členů -->
 <v-btn color="secondary" class="ml-2" v-if="isOwner" @click="showMembersDialog = true">
   Správa členů
 </v-btn>
@@ -119,6 +92,53 @@
 >
   Smazat projekt
 </v-btn>
+
+<v-btn
+  v-if="project && currentUserId && project.members.includes(currentUserId)"
+  color="error"
+  class="ml-2"
+  @click="leaveDialog = true"
+>
+  Odejít z projektu
+</v-btn>
+
+
+<v-dialog v-model="leaveDialog" max-width="500">
+  <v-card>
+    <v-card-title class="text-h6">Odejít z projektu?</v-card-title>
+    <v-card-text>
+      <div v-if="isOwner && project.members.length > 1">
+        Jste vedoucím projektu. Než odejdete, musíte zvolit nového vedoucího:
+        <v-select
+          v-model="newOwnerId"
+          :items="project.members
+            .filter(uid => uid !== currentUserId)
+            .map(uid => ({ text: usersMap[uid], value: uid }))"
+          label="Nový vedoucí"
+          item-title="text"
+          item-value="value"
+          dense
+          outlined
+        />
+      </div>
+      <div v-else-if="isOwner && project.members.length === 1">
+        Jste jediným členem projektu. Projekt bude smazán.
+      </div>
+      <div v-else>
+        Opravdu chcete odejít z projektu?
+      </div>
+    </v-card-text>
+    <v-card-actions class="justify-end">
+      <v-btn text @click="leaveDialog = false">Zrušit</v-btn>
+      <v-btn color="error" @click="leaveProject">Odejít</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+
+
+
+
 
 <v-dialog v-model="showDeleteDialog" max-width="500">
   <v-card>
@@ -409,7 +429,10 @@ export default {
       showEditProjectDialog: false,
       editProjectName: '',
       editProjectDescription: '',
-      showDeleteDialog: false
+      showDeleteDialog: false,
+      leaveDialog: false,
+      newOwnerId: '',
+      currentUserId: null,
     };
   },
   async mounted() {
@@ -418,7 +441,7 @@ export default {
     this.listenToMessages();
     this.editProjectName = this.project.name;
     this.editProjectDescription = this.project.description;
-
+    this.currentUserId = auth.currentUser?.uid || null;
   },
   computed: {
     tasksByStatus() {
@@ -451,6 +474,41 @@ export default {
   this.listenToMessages()
 },
 
+async leaveProject() {
+  const userId = this.currentUserId;
+  if (!userId || !this.project) return;
+
+  const remainingMembers = this.project.members.filter(uid => uid !== userId);
+
+  if (this.isOwner) {
+    if (remainingMembers.length === 0) {
+      // Vedoucí je jediný člen — smažeme celý projekt
+      await this.deleteProject();
+      return;
+    }
+
+    if (!this.newOwnerId) {
+      alert('Musíte zvolit nového vedoucího.');
+      return;
+    }
+
+    // Předání vlastnictví a odebrání vedoucího ze seznamu členů
+    const docRef = doc(db, 'projects', this.project.id);
+    await updateDoc(docRef, {
+      ownerId: this.newOwnerId,
+      members: remainingMembers
+    });
+  } else {
+    // Běžný člen odchází
+    const docRef = doc(db, 'projects', this.project.id);
+    await updateDoc(docRef, {
+      members: remainingMembers
+    });
+  }
+
+  this.leaveDialog = false;
+  this.$router.push('/dashboard');
+},
     
     async loadProjectAndTasks() {
       const projectId = this.$route.params.id;
