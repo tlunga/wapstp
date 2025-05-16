@@ -17,7 +17,10 @@ const routes = [
   { path: '/projects/:id', component: ProjectDetail, meta: { requiresAuth: true } },
   { path: '/projects/new', component: NewProject, meta: { requiresAuth: true } },
   { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
-  { path: '/user/:uid', name: 'UserView', component: () => import('../pages/UserView.vue') }
+  { path: '/user/:uid', name: 'UserView', component: () => import('../pages/UserView.vue') },
+  { path: '/chats', component: () => import('../pages/PrivateChats.vue'), meta: { requiresAuth: true } },
+{ path: '/chat/:uid', name: 'PrivateChat', component: () => import('../pages/PrivateChatRoom.vue'), meta: { requiresAuth: true } }
+
 ];
 
 const router = createRouter({

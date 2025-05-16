@@ -39,15 +39,17 @@
         🗓 Termín: {{ formatDueDate(task.dueDate) }}
       </div>
 
-      <div
+      <!-- Tlačítko pro zobrazení přiřazených -->
+      <v-btn
         v-if="task.assignedTo && task.assignedTo.length"
-        class="mt-2 text-body-2"
+        class="mt-3"
+        size="small"
+        variant="text"
+        @click="showAssignedDialog = true"
       >
-        <strong>Přiřazeno:</strong>
-        <span v-for="(uid, index) in task.assignedTo" :key="uid">
-          {{ usersMap[uid] || uid }}<span v-if="index < task.assignedTo.length - 1">, </span>
-        </span>
-      </div>
+        <v-icon start>mdi-account-multiple</v-icon>
+        Zobrazit přiřazené
+      </v-btn>
     </v-card-text>
 
     <v-card-actions>
@@ -60,6 +62,34 @@
         Smazat
       </v-btn>
     </v-card-actions>
+
+    <!-- Dialog s přiřazenými členy -->
+    <v-dialog v-model="showAssignedDialog" max-width="400">
+      <v-card>
+        <v-card-title>
+          <span class="text-h6">Přiřazení uživatelé</span>
+          <v-spacer />
+          <v-btn icon @click="showAssignedDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <v-list density="compact">
+            <v-list-item
+              v-for="uid in task.assignedTo"
+              :key="uid"
+            >
+              <v-list-item-title>
+                <span class="font-weight-medium">
+                  {{ usersMap[uid] || uid }}
+                </span>
+              </v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -68,6 +98,11 @@ export default {
   props: {
     task: Object,
     usersMap: Object
+  },
+  data() {
+    return {
+      showAssignedDialog: false
+    };
   },
   methods: {
     formatDueDate(ts) {
@@ -93,6 +128,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .task-card {

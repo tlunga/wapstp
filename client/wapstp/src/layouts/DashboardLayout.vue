@@ -36,6 +36,9 @@
 
         <!-- Profil -->
         <v-list-item to="/profile" prepend-icon="mdi-account" title="Profil" />
+        <!-- Chaty -->
+        <v-list-item to="/chats" prepend-icon="mdi-message-text-outline" title="Zprávy" />
+
       </v-list>
     </v-navigation-drawer>
 
