@@ -35,6 +35,7 @@
           :key="chatUser.uid"
           @click="goToChat(chatUser.uid)"
         >
+
           <v-list-item-content>
             <v-list-item-title>{{ chatUser.name || chatUser.email }}</v-list-item-title>
           </v-list-item-content>

@@ -1,7 +1,17 @@
 <template>
   <DashboardLayout>
     <v-container>
-      <h2>Chat s {{ recipient?.name || recipient?.email || '...' }}</h2>
+      <h2>
+  Chat s
+  <router-link
+    v-if="recipient"
+    :to="`/user/${recipient.uid}`"
+    class="chat-user-link"
+  >
+    {{ recipient.name || recipient.email }}
+  </router-link>
+</h2>
+
 
       <div class="chat-box">
         <div class="chat-messages" ref="chatContainer">
@@ -88,18 +98,35 @@ export default {
     };
 
     const sendMessage = async () => {
-      if (!newMessage.value.trim()) return;
+  if (!newMessage.value.trim()) return;
 
-      const msg = {
-        text: newMessage.value,
-        userId: currentUser.uid,
-        userName: currentUser.displayName || currentUser.email,
-        createdAt: serverTimestamp()
-      };
+  const chatMetaRef = doc(db, 'privateChats', chatId);
+  const chatDoc = await getDoc(chatMetaRef);
 
-      await addDoc(collection(db, 'privateChats', chatId, 'messages'), msg);
-      newMessage.value = '';
-    };
+  // ✅ pokud dokument neexistuje, vytvoří se
+  if (!chatDoc.exists()) {
+    await setDoc(chatMetaRef, {
+      participants: [currentUser.uid, recipientUid],
+      updatedAt: serverTimestamp()
+    });
+  } else {
+    // pokud existuje, aktualizujeme čas
+    await setDoc(chatMetaRef, {
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  const msg = {
+    text: newMessage.value,
+    userId: currentUser.uid,
+    userName: currentUser.displayName || currentUser.email,
+    createdAt: serverTimestamp()
+  };
+
+  await addDoc(collection(db, 'privateChats', chatId, 'messages'), msg);
+  newMessage.value = '';
+};
+
 
     const scrollToBottom = () => {
       setTimeout(() => {
@@ -159,7 +186,7 @@ export default {
   padding-right: 0.5rem;
 }
 .chat-message {
-  margin-bottom: 0.75rem;
+  margn-bottom: 0.75rem;
   display: flex;
 }
 .chat-message.me {
