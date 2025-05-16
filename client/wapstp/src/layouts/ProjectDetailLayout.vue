@@ -23,7 +23,7 @@
             <v-list-item v-bind="props" title="Projekty" />
           </template>
 
-          <v-list-item to="/projects/new" title="+ Nový projekt" prepend-icon="mdi-plus" />
+          <v-list-item to="/projects/new" title="Nový projekt" prepend-icon="mdi-plus" />
 
           <v-list-item
             v-for="project in userProjects"

@@ -4,30 +4,69 @@
     <h1>{{ project.name }}</h1>
     <p>{{ project.description }}</p>
 
-    <h3 class="mb-2">Členové projektu:</h3>
-<v-row dense>
-<v-col
-  v-for="user in membersInfo"
-  :key="user.uid"
-  cols="4"
-  sm="2"
-  class="text-center"
->
-  <router-link :to="`/user/${user.uid}`" style="text-decoration: none; color: inherit;">
-    <v-avatar size="56" class="mx-auto mb-2">
-      <v-img :src="user.photoURL || 'https://www.w3schools.com/howto/img_avatar.png'" />
-    </v-avatar>
+    <!-- Sekce členové + chat v jedné řádce -->
+<v-row class="my-6" align="start">
+  <!-- Členové projektu -->
+  <v-col cols="12" md="6">
+    <h3 class="mb-4">Členové projektu:</h3>
+    <v-row>
+      <v-col
+        v-for="user in membersInfo"
+        :key="user.uid"
+        cols="4"
+        class="text-center"
+      >
+        <router-link
+          :to="`/user/${user.uid}`"
+          style="text-decoration: none; color: inherit;"
+        >
+          <v-avatar size="64" class="mx-auto mb-2">
+            <v-img
+              :src="user.photoURL || 'https://www.w3schools.com/howto/img_avatar.png'"
+            />
+          </v-avatar>
+          <div class="font-weight-medium">{{ user.name || user.email }}</div>
+          <div
+            v-if="user.uid === project.ownerId"
+            class="text-caption"
+            style="color: #10b981"
+          >
+            vedoucí
+          </div>
+        </router-link>
+      </v-col>
+    </v-row>
+  </v-col>
 
-    <div class="text-body-2 font-weight-medium">
-      {{ user.name || user.email }}
-    </div>
+  <!-- Chat -->
+  <v-col cols="12" md="6">
+    <v-card class="pa-4">
+      <h3 class="mb-4">Projektový chat</h3>
+      <div class="chat-messages" ref="chatContainer" style="max-height: 250px; overflow-y: auto;">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="mb-2 pa-2"
+          style="background: #f3f4f6; border-radius: 8px;"
+        >
+          <strong>{{ msg.userName }}:</strong> {{ msg.text }}<br />
+          <small style="color: #6b7280">{{ formatTimestamp(msg.createdAt) }}</small>
+        </div>
+      </div>
 
-    <div v-if="user.uid === project.ownerId" class="text-caption" style="color: #10b981">
-      vedoucí
-    </div>
-  </router-link>
-</v-col>
-
+      <form @submit.prevent="sendMessage" class="d-flex mt-4" style="gap: 0.5rem;">
+        <v-text-field
+          v-model="newMessage"
+          label="Napsat zprávu..."
+          dense
+          hide-details
+          outlined
+          class="flex-grow-1"
+        />
+        <v-btn color="primary" type="submit">Odeslat</v-btn>
+      </form>
+    </v-card>
+  </v-col>
 </v-row>
 
 <!--
@@ -62,6 +101,66 @@
 <v-btn color="secondary" class="ml-2" v-if="isOwner" @click="showMembersDialog = true">
   Správa členů
 </v-btn>
+
+<v-btn
+  v-if="isOwner"
+  color="warning"
+  class="ml-2"
+  @click="showEditProjectDialog = true"
+>
+  Upravit projekt
+</v-btn>
+
+<v-btn
+  v-if="isOwner"
+  color="error"
+  class="ml-2"
+  @click="showDeleteDialog = true"
+>
+  Smazat projekt
+</v-btn>
+
+<v-dialog v-model="showDeleteDialog" max-width="500">
+  <v-card>
+    <v-card-title class="text-h6">Opravdu chcete smazat projekt?</v-card-title>
+    <v-card-text>Tímto krokem nenávratně odstraníte projekt a všechny jeho úkoly.</v-card-text>
+    <v-card-actions class="justify-end">
+      <v-btn text @click="showDeleteDialog = false">Zrušit</v-btn>
+      <v-btn color="error" @click="deleteProject">Smazat</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+<v-dialog v-model="showEditProjectDialog" max-width="600px">
+  <v-card>
+    <v-card-title>
+      <span class="text-h6">Úprava projektu</span>
+      <v-spacer />
+      <v-btn icon @click="showEditProjectDialog = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-card-title>
+    <v-card-text>
+      <v-text-field
+        v-model="editProjectName"
+        label="Název projektu"
+        outlined
+        dense
+        required
+      />
+      <v-textarea
+        v-model="editProjectDescription"
+        label="Popis projektu"
+        outlined
+        rows="4"
+        dense
+      />
+    </v-card-text>
+    <v-card-actions class="justify-end">
+      <v-btn color="primary" @click="saveProjectChanges">Uložit změny</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
 
 <!-- Dialog pro výběr členů -->
 <v-dialog v-model="showMembersDialog" max-width="600px">
@@ -131,59 +230,98 @@
       <p style="margin-top: 0.3rem;">{{ projectProgress }} % dokončeno</p>
     </div>
 
-    <div style="margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 1rem;">
-  <label>
-    <input type="checkbox" v-model="filterMineOnly" />
-    Pouze moje úkoly
-  </label>
+<v-card class="pa-4 mb-6" outlined>
+  <h3 class="mb-4">Filtry:</h3>
+  <v-row dense>
+    <!-- Pouze moje úkoly -->
+    <v-col cols="12" sm="6" md="2">
+      <v-checkbox
+        v-model="filterMineOnly"
+        label="Pouze moje úkoly"
+        hide-details
+        density="compact"
+      />
+    </v-col>
 
-  <label>
-    Priorita:
-    <select v-model="filterPriority">
-      <option value="">Vše</option>
-      <option value="high">Vysoká</option>
-      <option value="medium">Střední</option>
-      <option value="low">Nízká</option>
-    </select>
-  </label>
+    <!-- Priorita -->
+    <v-col cols="12" sm="6" md="2">
+      <v-select
+        v-model="filterPriority"
+        label="Priorita"
+        :items="[
+          { text: 'Vše', value: '' },
+          { text: 'Vysoká', value: 'high' },
+          { text: 'Střední', value: 'medium' },
+          { text: 'Nízká', value: 'low' }
+        ]"
+        item-title="text"
+        item-value="value"
+        density="compact"
+        hide-details
+        clearable
+      />
+    </v-col>
 
-  <label>
-    Termín:
-    <select v-model="filterDate">
-      <option value="">Vše</option>
-      <option value="today">Dnes</option>
-      <option value="upcoming">Budoucí</option>
-      <option value="overdue">Po termínu</option>
-    </select>
-  </label>
+    <!-- Termín -->
+    <v-col cols="12" sm="6" md="2">
+      <v-select
+        v-model="filterDate"
+        label="Termín"
+        :items="[
+          { text: 'Vše', value: '' },
+          { text: 'Dnes', value: 'today' },
+          { text: 'Budoucí', value: 'upcoming' },
+          { text: 'Po termínu', value: 'overdue' }
+        ]"
+        item-title="text"
+        item-value="value"
+        density="compact"
+        hide-details
+        clearable
+      />
+    </v-col>
 
-  <label>
-    Autor:
-    <select v-model="filterAuthor">
-      <option value="">Všichni</option>
-      <option
-        v-for="user in membersInfo"
-        :key="user.uid"
-        :value="user.uid"
-      >
-        {{ user.name || user.email }}
-      </option>
-    </select>
-  </label>
+    <!-- Autor -->
+    <v-col cols="12" sm="6" md="2">
+      <v-select
+        v-model="filterAuthor"
+        label="Autor"
+        :items="[
+          { text: 'Všichni', value: '' },
+          ...membersInfo.map(u => ({
+            text: u.name || u.email,
+            value: u.uid
+          }))
+        ]"
+        item-title="text"
+        item-value="value"
+        density="compact"
+        hide-details
+        clearable
+      />
+    </v-col>
 
-  <label>
-  Přiřazeno:
-  <select v-model="filterAssignedTo">
-    <option value="">Všichni</option>
-    <option
-      v-for="user in membersInfo"
-      :key="'assigned-' + user.uid"
-      :value="user.uid"
-    >
-      {{ user.name || user.email }}
-    </option>
-  </select>
-</label>
+    <!-- Přiřazeno -->
+    <v-col cols="12" sm="6" md="2">
+      <v-select
+        v-model="filterAssignedTo"
+        label="Přiřazeno"
+        :items="[
+          { text: 'Všichni', value: '' },
+          ...membersInfo.map(u => ({
+            text: u.name || u.email,
+            value: u.uid
+          }))
+        ]"
+        item-title="text"
+        item-value="value"
+        density="compact"
+        hide-details
+        clearable
+      />
+    </v-col>
+  </v-row>
+</v-card>
 
 
 </div>
@@ -238,11 +376,7 @@
         <button type="submit">Odeslat</button>
       </form>
     </div>
-  </div>
 
-  <div v-else>
-    <p>Načítám projekt...</p>
-  </div>
 </ProjectDetailLayout>
 </template>
 
@@ -287,12 +421,19 @@ export default {
       filterAuthor: '',
       filterAssignedTo: '',
       showMembersDialog: false,
+      showEditProjectDialog: false,
+      editProjectName: '',
+      editProjectDescription: '',
+      showDeleteDialog: false
     };
   },
   async mounted() {
     await this.loadProjectAndTasks();
     await this.loadProjectMembers();
     this.listenToMessages();
+    this.editProjectName = this.project.name;
+    this.editProjectDescription = this.project.description;
+
   },
   computed: {
     tasksByStatus() {
@@ -338,6 +479,38 @@ export default {
       }
     },
 
+    async saveProjectChanges() {
+  const docRef = doc(db, 'projects', this.project.id);
+  await updateDoc(docRef, {
+    name: this.editProjectName,
+    description: this.editProjectDescription
+  });
+
+  this.project.name = this.editProjectName;
+  this.project.description = this.editProjectDescription;
+  this.showEditProjectDialog = false;
+},
+
+async deleteProject() {
+  const confirmed = confirm('Opravdu chcete projekt smazat?');
+  if (!confirmed) return;
+
+  // Smaž všechny úkoly patřící do projektu
+  const tasksQuery = query(
+    collection(db, 'tasks'),
+    where('projectId', '==', this.project.id)
+  );
+  const tasksSnap = await getDocs(tasksQuery);
+  for (const taskDoc of tasksSnap.docs) {
+    await deleteDoc(doc(db, 'tasks', taskDoc.id));
+  }
+
+  // Smaž samotný projekt
+  await deleteDoc(doc(db, 'projects', this.project.id));
+
+  this.$router.push('/dashboard');
+},
+
     async loadProjectMembers() {
       if (!this.project?.members) return;
 
@@ -351,10 +524,16 @@ export default {
       this.allUsers.forEach(u => {
         u.selected = this.project.members.includes(u.uid);
       });
+      
 
-      this.membersInfo = this.allUsers.filter(u =>
-        this.project.members.includes(u.uid)
-      );
+      this.membersInfo = this.allUsers
+  .filter(u => this.project.members.includes(u.uid))
+  .sort((a, b) => {
+    if (a.uid === this.project.ownerId) return -1;
+    if (b.uid === this.project.ownerId) return 1;
+    return 0;
+  });
+
       this.usersMap = Object.fromEntries(
         this.membersInfo.map(u => [u.uid, u.name || u.email])
       );

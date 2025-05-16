@@ -22,7 +22,7 @@
           </template>
 
           <!-- Vytvořit nový -->
-          <v-list-item to="/projects/new" title="+ Nový projekt" prepend-icon="mdi-plus" />
+          <v-list-item to="/projects/new" title="Nový projekt" prepend-icon="mdi-plus" />
 
           <!-- Výpis projektů -->
           <v-list-item

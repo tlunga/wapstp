@@ -7,14 +7,22 @@
             <v-card-title class="text-h6 font-weight-bold">Můj profil</v-card-title>
             <v-card-text>
               <v-container>
+                <!-- Profilový obrázek -->
                 <v-row justify="center" class="mb-4">
                   <v-avatar size="100">
-                    <v-img
-                      :src="photoURL || 'https://www.w3schools.com/howto/img_avatar.png'"
-                      alt="Profil"
-                    />
+                    <v-img :src="photoPreview || photoURL || defaultAvatar" alt="Profil" />
                   </v-avatar>
                 </v-row>
+
+                <!-- Nahrání obrázku -->
+                <v-file-input
+                  label="Nahrát profilový obrázek"
+                  prepend-icon="mdi-camera"
+                  accept="image/*"
+                  @change="onFileChange"
+                  show-size
+                  dense
+                />
 
                 <v-form @submit.prevent="saveProfile">
                   <v-text-field
@@ -57,11 +65,10 @@
   </DashboardLayout>
 </template>
 
-
 <script>
-import DashboardLayout from '../layouts/DashboardLayout.vue';
-import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import DashboardLayout from '../layouts/DashboardLayout.vue'
+import { auth, db } from '../firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 export default {
   components: {
@@ -73,41 +80,58 @@ export default {
       email: '',
       info: '',
       photoURL: '',
-      message: ''
-    };
+      photoPreview: '',
+      message: '',
+      defaultAvatar: 'https://www.w3schools.com/howto/img_avatar.png'
+    }
   },
   async mounted() {
-    const user = auth.currentUser;
-    if (!user) return;
+    const user = auth.currentUser
+    if (!user) return
 
-    this.photoURL = user.photoURL || '';
+    this.photoURL = user.photoURL || ''
+    this.email = user.email
 
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
+    const docRef = doc(db, 'users', user.uid)
+    const docSnap = await getDoc(docRef)
 
     if (docSnap.exists()) {
-      const data = docSnap.data();
-      this.name = data.name || '';
-      this.email = data.email || user.email;
-      this.info = data.info || '';
-    } else {
-      this.email = user.email;
+      const data = docSnap.data()
+      this.name = data.name || ''
+      this.info = data.info || ''
+      this.photoURL = data.photoURL || ''
     }
   },
   methods: {
     async saveProfile() {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = auth.currentUser
+      if (!user) return
 
-      const docRef = doc(db, 'users', user.uid);
+      const docRef = doc(db, 'users', user.uid)
       await setDoc(docRef, {
         name: this.name,
         email: this.email,
-        info: this.info
-      });
+        info: this.info,
+        photoURL: this.photoPreview || this.photoURL // preferuje lokální náhled, pokud byl nahrán
+      })
 
-      this.message = 'Profil byl úspěšně uložen.';
+      this.photoURL = this.photoPreview || this.photoURL
+      this.photoPreview = ''
+      this.message = 'Profil byl úspěšně uložen.'
+    },
+
+    onFileChange(file) {
+      if (!file) {
+        this.photoPreview = ''
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = e => {
+        this.photoPreview = e.target.result
+      }
+      reader.readAsDataURL(file)
     }
   }
-};
+}
 </script>
