@@ -5,17 +5,19 @@ import Dashboard from '../pages/Dashboard.vue';
 import ProjectDetail from '../pages/ProjectDetail.vue';
 import UserProfile from '../pages/UserProfile.vue';
 import NewProject from '../pages/NewProject.vue';
+import Home from '../pages/Home.vue';
 
 const routes = [
-  { path: '/', redirect: '/login' },
+  { path: '/', name: 'Home', component: Home },
+
   { path: '/login', component: LoginPage },
   { path: '/register', component: RegisterPage },
+
   { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
   { path: '/projects/:id', component: ProjectDetail, meta: { requiresAuth: true } },
-  { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
   { path: '/projects/new', component: NewProject, meta: { requiresAuth: true } },
-  { path: '/profile',component: () => import('../pages/UserProfile.vue')},
-  {path: '/user/:uid',name: 'UserView',component: () => import('../pages/UserView.vue')}
+  { path: '/profile', component: UserProfile, meta: { requiresAuth: true } },
+  { path: '/user/:uid', name: 'UserView', component: () => import('../pages/UserView.vue') }
 ];
 
 const router = createRouter({

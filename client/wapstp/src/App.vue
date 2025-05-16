@@ -1,16 +1,15 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import Navbar from './components/Navbar.vue';
 
-import RegisterForm from './components/RegisterForm.vue';
-import LoginForm from './components/LoginForm.vue';
-import HelloWorld from './components/HelloWorld.vue';
+import Navbar from './components/Navbar.vue';
 
 const user = ref(null);
 const userRole = ref(null);
+const route = useRoute();
 
 // Sledujeme změnu přihlášení
 onMounted(() => {
@@ -36,11 +35,16 @@ async function logout() {
   user.value = null;
   userRole.value = null;
 }
+
+// Cesty bez navigace
+const hideNavbar = computed(() =>
+  ['/', '/login', '/register'].includes(route.path)
+);
 </script>
 
 <template>
   <div>
-    <Navbar />
+    <Navbar v-if="!hideNavbar" />
     <router-view />
   </div>
 </template>

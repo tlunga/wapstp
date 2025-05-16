@@ -1,6 +1,5 @@
 <template>
     <div>
-      <h1>Přihlášení</h1>
       <LoginForm @userLoggedIn="$router.push('/dashboard')" />
     </div>
   </template>

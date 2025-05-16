@@ -361,21 +361,6 @@
       </div>
     </div>
 
-    <h2>Projektový chat</h2>
-    <div class="chat-box">
-      <div ref="chatContainer" class="chat-messages">
-        <div v-for="msg in messages" :key="msg.id" class="chat-message">
-          <strong>{{ msg.userName }}:</strong> {{ msg.text }}<br />
-          <small style="color: #6b7280;">
-            {{ formatTimestamp(msg.createdAt) }}
-          </small>
-        </div>
-      </div>
-      <form @submit.prevent="sendMessage" class="chat-form">
-        <input v-model="newMessage" type="text" placeholder="Napsat zprávu..." required />
-        <button type="submit">Odeslat</button>
-      </form>
-    </div>
 
 </ProjectDetailLayout>
 </template>
