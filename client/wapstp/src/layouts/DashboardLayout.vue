@@ -1,10 +1,27 @@
 <template>
   <v-app>
     <!-- Horní lišta -->
-<v-app-bar app color="primary" dark>
-  <v-app-bar-nav-icon @click="drawer = !drawer" /> <!-- Tlačítko pro vysunutí -->
-  <v-toolbar-title>Team Project Manager</v-toolbar-title>
+<v-app-bar app color="primary" dark style="position: relative;">
+  <v-app-bar-nav-icon @click="drawer = !drawer" />
+
+  <!-- Logo + název Projectica přesně uprostřed -->
+  <div
+    class="d-flex align-center"
+    style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"
+  >
+    <v-img
+      src="src/assets/logo.png"
+      alt="Projectica Logo"
+      contain
+      width="40"
+      height="40"
+      class="mr-2"
+    />
+    <span class="text-h6 font-weight-medium">Projectica</span>
+  </div>
+
   <v-spacer />
+
   <v-btn icon @click="logout">
     <v-icon>mdi-logout</v-icon>
   </v-btn>

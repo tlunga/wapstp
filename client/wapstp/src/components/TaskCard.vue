@@ -82,7 +82,7 @@
             >
               <v-list-item-title>
                 <span class="font-weight-medium">
-                  {{ usersMap[uid] || uid }}
+                  {{ usersMap[uid] || '(uživatel opustil projekt)' }}
                 </span>
               </v-list-item-title>
             </v-list-item>

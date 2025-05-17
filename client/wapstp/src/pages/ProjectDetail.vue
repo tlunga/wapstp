@@ -6,37 +6,49 @@
 
     <!-- Sekce členové + chat v jedné řádce -->
 <v-row class="my-6" align="start">
-  <!-- Členové projektu -->
-  <v-col cols="12" md="6">
-    <h3 class="mb-4">Členové projektu:</h3>
-    <v-row>
-      <v-col
-        v-for="user in membersInfo"
-        :key="user.uid"
-        cols="4"
-        class="text-center"
-      >
-        <router-link
-          :to="`/user/${user.uid}`"
-          style="text-decoration: none; color: inherit;"
+  <!-- Členové projektu s pevnou výškou a scrollováním -->
+<v-col cols="12" md="6">
+  <v-card height="350" class="d-flex flex-column">
+    <!-- Fixní nadpis -->
+    <div class="pa-4 pb-2">
+      <h3 class="mb-0">Členové projektu:</h3>
+    </div>
+
+    <!-- Scrollovatelná oblast -->
+    <div class="flex-grow-1 px-4 pb-4" style="overflow-y: auto;">
+      <v-row>
+        <v-col
+          v-for="user in membersInfo"
+          :key="user.uid"
+          cols="4"
+          class="text-center"
         >
-          <v-avatar size="64" class="mx-auto mb-2">
-            <v-img
-              :src="user.photoURL || 'https://www.w3schools.com/howto/img_avatar.png'"
-            />
-          </v-avatar>
-          <div class="font-weight-medium">{{ user.name || user.email }}</div>
-          <div
-            v-if="user.uid === project.ownerId"
-            class="text-caption"
-            style="color: #10b981"
+          <router-link
+            :to="`/user/${user.uid}`"
+            style="text-decoration: none; color: inherit;"
           >
-            vedoucí
-          </div>
-        </router-link>
-      </v-col>
-    </v-row>
-  </v-col>
+            <v-avatar size="64" class="mx-auto mb-2">
+              <v-img :src="user.photoURL || 'https://www.w3schools.com/howto/img_avatar.png'" />
+            </v-avatar>
+            <div class="font-weight-medium">
+              {{ user.name || user.email }}
+            </div>
+            <div v-if="user.email" class="text-caption" style="color: #9ca3af">
+              ({{ user.email }})
+            </div>
+            <div
+              v-if="user.uid === project.ownerId"
+              class="text-caption mt-1"
+              style="color: #10b981"
+            >
+              vedoucí
+            </div>
+          </router-link>
+        </v-col>
+      </v-row>
+    </div>
+  </v-card>
+</v-col>
 
   <!-- Chat -->
   <v-col cols="12" md="6">

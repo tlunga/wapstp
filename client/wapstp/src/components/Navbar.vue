@@ -1,17 +1,5 @@
 <template>
-  <nav class="navbar">
-    <template v-if="isLoggedIn">
-      <router-link to="/dashboard" class="nav-item">Nástěnka</router-link>
-      <router-link to="/projects/new" class="nav-item">+ Projekt</router-link>
-      <router-link to="/profile" class="nav-item">Profil</router-link>
-      <button @click="logout" class="nav-item logout-btn">Odhlásit se</button>
-    </template>
 
-    <template v-else>
-      <router-link to="/login" class="nav-item">Přihlášení</router-link>
-      <router-link to="/register" class="nav-item">Registrace</router-link>
-    </template>
-  </nav>
 </template>
 
   
