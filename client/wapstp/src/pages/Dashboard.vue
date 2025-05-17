@@ -62,7 +62,7 @@
             <v-divider class="mb-4"></v-divider>
 
             <v-row class="mb-4" dense>
-  <v-col cols="12" sm="6" md="4">
+  <v-col cols="12" sm="6" md="3">
     <v-select
       v-model="filterStatus"
       :items="[
@@ -71,13 +71,14 @@
         { title: 'In Progress', value: 'inprogress' },
         { title: 'Hotovo', value: 'done' }
       ]"
-      label="Filtrovat podle stavu"
+      label="Stav"
       dense
       clearable
     />
   </v-col>
 
-  <v-col cols="12" sm="6" md="4">
+  <!-- Termín -->
+  <v-col cols="12" sm="6" md="3">
     <v-select
       v-model="filterDate"
       :items="[
@@ -86,14 +87,41 @@
         { title: 'Budoucí', value: 'upcoming' },
         { title: 'Po termínu', value: 'overdue' }
       ]"
-      label="Filtrovat podle termínu"
+      label="Termín"
       dense
       clearable
     />
   </v-col>
+
+    <!-- Priorita -->
+  <v-col cols="12" sm="6" md="3">
+    <v-select
+      v-model="filterPriority"
+      :items="[
+        { title: 'Všechny', value: '' },
+        { title: 'Nízká', value: 'low' },
+        { title: 'Střední', value: 'medium' },
+        { title: 'Vysoká', value: 'high' }
+      ]"
+      label="Priorita"
+      dense
+      clearable
+    />
+  </v-col>
+
+  <!-- Řazení -->
+  <v-col cols="12" sm="6" md="3">
+    <v-select
+      v-model="sortOrder"
+      :items="[
+        { title: 'Nejnovější', value: 'desc' },
+        { title: 'Nejstarší', value: 'asc' }
+      ]"
+      label="Seřadit podle"
+      dense
+    />
+  </v-col>
 </v-row>
-
-
             <v-list v-if="filteredTasks.length" lines="two">
               <v-list-item
   v-for="(task, index) in filteredTasks"
@@ -184,14 +212,17 @@ const myTasks = ref([])
 const selectedDate = ref(new Date())
 const filterStatus = ref('')
 const filterDate = ref('')
+const filterPriority = ref('')
+const sortOrder = ref('desc') // 'desc' = nejnovější nahoře
+
 
 const filteredTasks = computed(() => {
   const now = new Date()
-  return myTasks.value.filter(task => {
+  let tasks = myTasks.value.filter(task => {
     // Stav
     if (filterStatus.value && task.status !== filterStatus.value) return false
 
-    // Datum
+    // Termín
     if (filterDate.value && task.dueDate?.toDate) {
       const due = task.dueDate.toDate()
       const today = new Date()
@@ -202,9 +233,22 @@ const filteredTasks = computed(() => {
       if (filterDate.value === 'overdue' && due > now) return false
     }
 
+    // Priorita
+    if (filterPriority.value && task.priority !== filterPriority.value) return false
+
     return true
   })
+
+  // Řazení podle createdAt
+  return tasks.sort((a, b) => {
+    const aDate = a.createdAt?.toDate?.() || new Date(0)
+    const bDate = b.createdAt?.toDate?.() || new Date(0)
+    return sortOrder.value === 'desc'
+      ? bDate - aDate
+      : aDate - bDate
+  })
 })
+
 
 onMounted(async () => {
   const user = auth.currentUser

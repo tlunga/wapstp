@@ -1,48 +1,48 @@
 <template>
   <v-app>
     <!-- Horní lišta -->
-<v-app-bar app color="primary" dark style="position: relative;">
-  <v-app-bar-nav-icon @click="drawer = !drawer" />
+    <v-app-bar
+      app
+      color="primary"
+      dark
+      :style="{ transform: showNavbar ? 'translateY(0)' : 'translateY(-100%)', transition: 'transform 0.3s ease' }"
+    >
+      <v-app-bar-nav-icon @click="drawer = !drawer" />
 
-  <!-- Logo + název Projectica přesně uprostřed -->
-  <div
-    class="d-flex align-center"
-    style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"
-  >
-    <v-img
-      src="src/assets/logo.png"
-      alt="Projectica Logo"
-      contain
-      width="40"
-      height="40"
-      class="mr-2"
-    />
-    <span class="text-h6 font-weight-medium">Projectica</span>
-  </div>
+      <!-- Logo + název Projectica přesně uprostřed -->
+      <div
+        class="d-flex align-center"
+        style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"
+      >
+        <v-img
+          src="src/assets/logo.png"
+          alt="Projectica Logo"
+          contain
+          width="40"
+          height="40"
+          class="mr-2"
+        />
+        <span class="text-h6 font-weight-medium">Projectica</span>
+      </div>
 
-  <v-spacer />
+      <v-spacer />
 
-  <v-btn icon @click="logout">
-    <v-icon>mdi-logout</v-icon>
-  </v-btn>
-</v-app-bar>
+      <v-btn icon @click="logout">
+        <v-icon>mdi-logout</v-icon>
+      </v-btn>
+    </v-app-bar>
 
     <!-- Navigace vlevo -->
     <v-navigation-drawer app v-model="drawer" color="grey-lighten-4">
       <v-list density="compact" nav>
-        <!-- Dashboard -->
         <v-list-item to="/dashboard" prepend-icon="mdi-view-dashboard" title="Dashboard" />
 
-        <!-- Projekty - rozbalovací -->
         <v-list-group prepend-icon="mdi-folder" value="true" no-action>
           <template #activator="{ props }">
             <v-list-item v-bind="props" title="Projekty" />
           </template>
 
-          <!-- Vytvořit nový -->
           <v-list-item to="/projects/new" title="Nový projekt" prepend-icon="mdi-plus" />
-
-          <!-- Výpis projektů -->
           <v-list-item
             v-for="project in userProjects"
             :key="project.id"
@@ -52,11 +52,8 @@
           />
         </v-list-group>
 
-        <!-- Profil -->
         <v-list-item to="/profile" prepend-icon="mdi-account" title="Profil" />
-        <!-- Chaty -->
         <v-list-item to="/chats" prepend-icon="mdi-message-text-outline" title="Zprávy" />
-
       </v-list>
     </v-navigation-drawer>
 
@@ -70,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db } from '../firebase'
 import { collection, query, where, getDocs } from 'firebase/firestore'
@@ -78,10 +75,21 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 const drawer = ref(true)
 const router = useRouter()
 const userProjects = ref([])
-
+const showNavbar = ref(true)
+let lastScrollY = window.scrollY
 
 function logout() {
   router.push('/login')
+}
+
+function handleScroll() {
+  const currentScrollY = window.scrollY
+  if (currentScrollY > lastScrollY && currentScrollY > 50) {
+    showNavbar.value = false
+  } else if (currentScrollY < lastScrollY) {
+    showNavbar.value = true
+  }
+  lastScrollY = currentScrollY
 }
 
 onMounted(async () => {
@@ -94,5 +102,11 @@ onMounted(async () => {
     id: doc.id,
     ...doc.data()
   }))
+
+  window.addEventListener('scroll', handleScroll)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
