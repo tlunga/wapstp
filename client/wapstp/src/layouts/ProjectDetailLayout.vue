@@ -2,6 +2,7 @@
   <v-app>
     <!-- Horní lišta -->
     <v-app-bar app color="indigo" dark>
+        <v-app-bar-nav-icon @click="drawer = !drawer" /> <!-- Tlačítko pro vysunutí -->
       <v-btn icon @click="$router.push('/dashboard')">
         <v-icon>mdi-arrow-left</v-icon>
       </v-btn>
@@ -35,6 +36,9 @@
         </v-list-group>
 
         <v-list-item to="/profile" prepend-icon="mdi-account" title="Profil" />
+      
+        <!-- Chaty -->
+        <v-list-item to="/chats" prepend-icon="mdi-message-text-outline" title="Zprávy" />
       </v-list>
     </v-navigation-drawer>
 

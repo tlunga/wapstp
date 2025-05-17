@@ -1,13 +1,14 @@
 <template>
   <v-app>
     <!-- Horní lišta -->
-    <v-app-bar app color="primary" dark>
-      <v-app-bar-title>Team Project Manager</v-app-bar-title>
-      <v-spacer />
-      <v-btn icon @click="logout">
-        <v-icon>mdi-logout</v-icon>
-      </v-btn>
-    </v-app-bar>
+<v-app-bar app color="primary" dark>
+  <v-app-bar-nav-icon @click="drawer = !drawer" /> <!-- Tlačítko pro vysunutí -->
+  <v-toolbar-title>Team Project Manager</v-toolbar-title>
+  <v-spacer />
+  <v-btn icon @click="logout">
+    <v-icon>mdi-logout</v-icon>
+  </v-btn>
+</v-app-bar>
 
     <!-- Navigace vlevo -->
     <v-navigation-drawer app v-model="drawer" color="grey-lighten-4">
@@ -60,6 +61,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 const drawer = ref(true)
 const router = useRouter()
 const userProjects = ref([])
+
 
 function logout() {
   router.push('/login')

@@ -1,33 +1,42 @@
+<!--
+
 <template>
   <DashboardLayout>
-    <v-container>
-      <h2>
-  Chat s
-  <router-link
-    v-if="recipient"
-    :to="`/user/${recipient.uid}`"
-    class="chat-user-link"
-  >
-    {{ recipient.name || recipient.email }}
-  </router-link>
-</h2>
+    <v-container class="d-flex justify-center">
+      <v-card
+        class="pa-4"
+        elevation="3"
+        rounded="lg"
+        height="750px"
+        max-width="1000px"
+        style="width: 100%; display: flex; flex-direction: column;"
+      >
+        <v-toolbar flat color="transparent" class="mb-2">
+          <v-icon class="mr-3">mdi-account-group</v-icon>
+          <h2 class="text-h6 font-weight-medium mb-0">
+            Projektový chat: {{ project.name }}
+          </h2>
+        </v-toolbar>
 
-
-      <div class="chat-box">
-        <div class="chat-messages" ref="chatContainer">
+        <div class="chat-messages flex-grow-1" ref="chatContainer">
           <div
             v-for="msg in messages"
             :key="msg.id"
             :class="['chat-message', msg.userId === currentUser.uid ? 'me' : 'other']"
           >
-            <div class="message">
-              {{ msg.text }}
+            <v-card
+              :color="msg.userId === currentUser.uid ? 'blue-lighten-4' : 'grey-lighten-3'"
+              class="pa-3 message"
+              elevation="1"
+              max-width="70%"
+            >
+              <div>{{ msg.text }}</div>
               <div class="meta">{{ formatTimestamp(msg.createdAt) }}</div>
-            </div>
+            </v-card>
           </div>
         </div>
 
-        <form @submit.prevent="sendMessage" class="chat-form">
+        <v-form @submit.prevent="sendMessage" class="chat-form mt-3">
           <v-text-field
             v-model="newMessage"
             label="Napiš zprávu..."
@@ -37,11 +46,12 @@
             append-icon="mdi-send"
             @click:append="sendMessage"
           />
-        </form>
-      </div>
+        </v-form>
+      </v-card>
     </v-container>
   </DashboardLayout>
 </template>
+
 
 <script>
 import { ref, onMounted, watch } from 'vue';
@@ -160,6 +170,12 @@ export default {
 </script>
 
 <style scoped>
+
+.chat-user-link {
+  text-decoration: none;
+  color: inherit;
+  font-weight: 500;
+}
 .message {
   background-color: #bfdbfe;
   padding: 0.6rem 1rem;
@@ -215,3 +231,4 @@ export default {
   margin-top: 1rem;
 }
 </style>
+-->
