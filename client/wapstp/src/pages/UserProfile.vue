@@ -9,53 +9,60 @@
               <v-container>
                 <!-- Profilový obrázek -->
                 <v-row justify="center" class="mb-4">
-                  <v-avatar size="100">
+                  <v-avatar size="250">
+                    <!-- Base64 nebo URL nebo výchozí -->
                     <v-img :src="photoPreview || photoURL || defaultAvatar" alt="Profil" />
                   </v-avatar>
                 </v-row>
 
                 <!-- Nahrání obrázku -->
                 <v-file-input
-                  label="Nahrát profilový obrázek"
-                  prepend-icon="mdi-camera"
-                  accept="image/*"
-                  @change="onFileChange"
-                  show-size
-                  dense
-                />
+  label="Nahrát profilový obrázek"
+  prepend-icon="mdi-camera"
+  accept="image/*"
+  show-size
+  dense
+  @update:model-value="onFileChange"
+  hint="Pouze obrázek (JPEG/PNG), max. velikost 200 kB"
+  persistent-hint
+/>
+<v-form ref="form" @submit.prevent="saveProfile">
+  <v-text-field
+    v-model="name"
+    label="Jméno"
+    prepend-inner-icon="mdi-account"
+    :rules="nameRules"
+    required
+  />
 
-                <v-form @submit.prevent="saveProfile">
-                  <v-text-field
-                    v-model="name"
-                    label="Jméno"
-                    prepend-inner-icon="mdi-account"
-                    required
-                  />
-                  <v-text-field
-                    v-model="email"
-                    label="Email"
-                    prepend-inner-icon="mdi-email"
-                    disabled
-                  />
-                  <v-textarea
-                    v-model="info"
-                    label="Informace o mně"
-                    rows="3"
-                    prepend-inner-icon="mdi-information"
-                  />
+  <v-text-field
+    v-model="email"
+    label="Email"
+    prepend-inner-icon="mdi-email"
+    disabled
+  />
 
-                  <v-btn type="submit" color="primary" class="mt-4" block>Uložit profil</v-btn>
+  <v-textarea
+    v-model="info"
+    label="Informace o mně"
+    rows="3"
+    prepend-inner-icon="mdi-information"
+    :rules="infoRules"
+  />
 
-                  <v-alert
-                    v-if="message"
-                    type="success"
-                    class="mt-4"
-                    dense
-                    text
-                  >
-                    {{ message }}
-                  </v-alert>
-                </v-form>
+  <v-btn type="submit" color="primary" class="mt-4" block>Uložit profil</v-btn>
+
+  <v-alert
+    v-if="message"
+    type="success"
+    class="mt-4"
+    dense
+    text
+  >
+    {{ message }}
+  </v-alert>
+</v-form>
+
               </v-container>
             </v-card-text>
           </v-card>
@@ -74,24 +81,32 @@ export default {
   components: {
     DashboardLayout
   },
-  data() {
-    return {
-      name: '',
-      email: '',
-      info: '',
-      photoURL: '',
-      photoPreview: '',
-      message: '',
-      defaultAvatar: 'https://www.w3schools.com/howto/img_avatar.png'
-    }
-  },
+data() {
+  return {
+    name: '',
+    email: '',
+    info: '',
+    photoURL: '',
+    photoPreview: '',
+    message: '',
+    errorMessage: '',
+    defaultAvatar: 'https://www.w3schools.com/howto/img_avatar.png',
+
+    // ✅ Pravidla pro validaci
+    nameRules: [
+      v => !!v || 'Jméno je povinné.',
+      v => v.length <= 50 || 'Jméno může mít maximálně 50 znaků.'
+    ],
+    infoRules: [
+      v => !v || v.length <= 1000 || 'Informace mohou mít maximálně 1000 znaků.'
+    ]
+  }
+},
   async mounted() {
     const user = auth.currentUser
     if (!user) return
 
-    this.photoURL = user.photoURL || ''
     this.email = user.email
-
     const docRef = doc(db, 'users', user.uid)
     const docSnap = await getDoc(docRef)
 
@@ -108,30 +123,67 @@ export default {
       if (!user) return
 
       const docRef = doc(db, 'users', user.uid)
+
+      // Uložíme buď base64 (nový obrázek), nebo ponecháme stávající
       await setDoc(docRef, {
         name: this.name,
         email: this.email,
         info: this.info,
-        photoURL: this.photoPreview || this.photoURL // preferuje lokální náhled, pokud byl nahrán
+        photoURL: this.photoPreview || this.photoURL
       })
 
+      // Aktualizujeme lokální zobrazení
       this.photoURL = this.photoPreview || this.photoURL
       this.photoPreview = ''
       this.message = 'Profil byl úspěšně uložen.'
     },
 
-    onFileChange(file) {
-      if (!file) {
-        this.photoPreview = ''
-        return
-      }
+onFileChange(file) {
+  this.errorMessage = ''
+  this.photoPreview = ''
 
-      const reader = new FileReader()
-      reader.onload = e => {
-        this.photoPreview = e.target.result
-      }
-      reader.readAsDataURL(file)
+  if (!file) return
+
+  // ✅ MIME typ whitelist
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    this.errorMessage = 'Nepodporovaný typ souboru. Povolené formáty: JPEG, PNG, WEBP.'
+    return
+  }
+
+  // ✅ Přípona souboru (pro jistotu)
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp']
+  const fileName = file.name.toLowerCase()
+  const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext))
+  if (!hasValidExtension) {
+    this.errorMessage = 'Nepodporovaná přípona souboru.'
+    return
+  }
+
+  // ✅ Velikost
+  const maxSizeKB = 200
+  if (file.size > maxSizeKB * 1024) {
+    this.errorMessage = `Obrázek je příliš velký. Maximální velikost je ${maxSizeKB} kB.`
+    return
+  }
+
+  // ✅ Čtení base64 + kontrola prefixu
+  const reader = new FileReader()
+  reader.onload = e => {
+    const result = e.target.result
+
+    // Základní kontrola bezpečného base64 formátu
+    if (!result.startsWith('data:image/')) {
+      this.errorMessage = 'Soubor nebyl správně načten jako obrázek.'
+      return
     }
+
+    this.photoPreview = result
+  }
+  reader.readAsDataURL(file)
+}
+
+
   }
 }
 </script>
