@@ -8,7 +8,7 @@
 <v-row class="my-6" align="start">
   <!-- Členové projektu s pevnou výškou a scrollováním -->
 <v-col cols="12" md="6">
-  <v-card height="350" class="d-flex flex-column">
+  <v-card height="450" class="d-flex flex-column">
     <!-- Fixní nadpis -->
     <div class="pa-4 pb-2">
       <h3 class="mb-0">Členové projektu:</h3>
@@ -52,9 +52,9 @@
 
   <!-- Chat -->
   <v-col cols="12" md="6">
-    <v-card class="pa-4">
+    <v-card class="pa-4" height="450">
       <h3 class="mb-4">Projektový chat</h3>
-      <div class="chat-messages" ref="chatContainer" style="max-height: 250px; overflow-y: auto;">
+      <div class="chat-messages" ref="chatContainer" style="max-height: 280px; overflow-y: auto;">
         <div
           v-for="msg in messages"
           :key="msg.id"

@@ -36,6 +36,7 @@ async function logout() {
   userRole.value = null;
 }
 
+
 // Cesty bez navigace
 const hideNavbar = computed(() =>
   ['/', '/login', '/register'].includes(route.path)
